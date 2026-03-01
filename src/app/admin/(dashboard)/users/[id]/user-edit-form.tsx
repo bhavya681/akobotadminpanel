@@ -1,16 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { User } from "@/lib/api/admin-api";
-import { updateUser } from "@/lib/api/admin-api";
+import { useRouter } from "next/navigation";
+import type { User } from "@/lib/types/admin";
+import { updateUserAction } from "@/app/admin/actions";
 
-export function UserEditForm({
-  user,
-  onSaved,
-}: {
-  user: User;
-  onSaved?: () => void;
-}) {
+export function UserEditForm({ user }: { user: User }) {
+  const router = useRouter();
   const id = user._id ?? user.id ?? "";
   const [username, setUsername] = useState(user.username);
   const [email, setEmail] = useState(user.email);
@@ -25,18 +21,21 @@ export function UserEditForm({
     e.preventDefault();
     setError("");
     setSuccess(false);
-    const body: Partial<User> = { username, email, isActive, isBanned };
-    if (password.trim()) body.password = password;
-
+    const formData = new FormData();
+    formData.set("username", username);
+    formData.set("email", email);
+    if (password.trim()) formData.set("password", password);
+    formData.set("isActive", String(isActive));
+    formData.set("isBanned", String(isBanned));
     setLoading(true);
     try {
-      const { ok, data } = await updateUser(id, body);
-      if (ok && (data && !("message" in data))) {
+      const result = await updateUserAction(id, formData);
+      if (result.ok) {
         setSuccess(true);
         setPassword("");
-        onSaved?.();
+        router.refresh();
       } else {
-        setError((data as { message?: string })?.message ?? "Failed to update user.");
+        setError(result.error ?? "Failed to update user.");
       }
     } catch {
       setError("Request failed. Try again.");
@@ -45,24 +44,26 @@ export function UserEditForm({
     }
   };
 
+  const inputClass = "w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-[var(--foreground)] transition-colors focus:border-[var(--ring)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/20";
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 transition-colors duration-300"
+      className="space-y-6 rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm"
     >
       <div>
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
           Username
         </label>
         <input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2 text-zinc-900 dark:text-zinc-100"
+          className={inputClass}
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
           Email
         </label>
         <input
@@ -70,11 +71,11 @@ export function UserEditForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2 text-zinc-900 dark:text-zinc-100"
+          className={inputClass}
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+        <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
           New password (leave blank to keep current)
         </label>
         <input
@@ -82,7 +83,7 @@ export function UserEditForm({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2 text-zinc-900 dark:text-zinc-100"
+          className={inputClass}
         />
       </div>
       <div className="flex gap-6">
@@ -138,7 +139,7 @@ export function UserEditForm({
       <button
         type="submit"
         disabled={loading}
-        className="rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50"
+        className="rounded-lg bg-[var(--primary)] px-4 py-2.5 text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:opacity-90 disabled:opacity-50"
       >
         {loading ? "Saving..." : "Save changes"}
       </button>

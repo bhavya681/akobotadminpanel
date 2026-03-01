@@ -45,18 +45,18 @@ function HomeLoginForm() {
   const displayError = error || submitError;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-300" suppressHydrationWarning>
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black backdrop-blur-xl transition-colors duration-300">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+    <div className="min-h-screen bg-[var(--background)] transition-colors duration-300" suppressHydrationWarning>
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Akeo" width={36} height={36} priority className="h-9 w-9" />
-            <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Akeo</span>
+            <Image src="/logo.png" alt="Akeo" width={36} height={36} priority className="h-9 w-9 rounded-lg" />
+            <span className="text-xl font-bold tracking-tight text-[var(--foreground)]">Akeo</span>
           </Link>
           <div className="flex items-center gap-4" suppressHydrationWarning>
             <ThemeToggle />
             <Link
               href="/admin/login"
-              className="text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              className="text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
             >
               Admin
             </Link>
@@ -64,22 +64,22 @@ function HomeLoginForm() {
         </div>
       </header>
 
-      <main className="flex min-h-screen flex-col items-center justify-center px-6 pt-16">
+      <main className="flex min-h-screen flex-col items-center justify-center px-4 sm:px-6 pt-16 pb-8">
         <div className="w-full max-w-md">
           <div className="mb-8 flex flex-col items-center text-center">
-            <Image src="/logo.png" alt="Akeo" width={64} height={64} className="mb-4 h-16 w-16" priority />
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
+            <Image src="/logo.png" alt="Akeo" width={64} height={64} className="mb-4 h-16 w-16 rounded-xl" priority />
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
               Welcome back
             </h1>
-            <p className="mt-2 text-zinc-500 dark:text-zinc-400">
+            <p className="mt-2 text-[var(--muted-foreground)]">
               Sign in to access your dashboard
             </p>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-xl shadow-zinc-200/50 dark:shadow-zinc-950/50 transition-colors duration-300">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-xl">
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="identifier" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                <label htmlFor="identifier" className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
                   Email or username
                 </label>
                 <input
@@ -89,11 +89,11 @@ function HomeLoginForm() {
                   autoComplete="username"
                   required
                   placeholder="you@example.com"
-                  className="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2.5 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 transition-colors duration-300"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] transition-colors focus:border-[var(--ring)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/20"
                 />
               </div>
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                <label htmlFor="password" className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
                   Password
                 </label>
                 <input
@@ -103,18 +103,18 @@ function HomeLoginForm() {
                   autoComplete="current-password"
                   required
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2.5 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 transition-colors duration-300"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] transition-colors focus:border-[var(--ring)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/20"
                 />
               </div>
               {displayError && (
-                <div role="alert" className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+                <div role="alert" className="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-700 dark:text-red-400">
                   {displayError}
                 </div>
               )}
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full cursor-pointer rounded-lg bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 font-semibold py-2.5 px-4 hover:bg-zinc-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
+                className="w-full rounded-lg bg-[var(--primary)] py-3 px-4 font-semibold text-[var(--primary-foreground)] transition-colors hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPending ? "Signing in..." : "Sign in"}
               </button>

@@ -1,8 +1,5 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getFullInsights } from "@/lib/api/admin-api";
+import { getFullInsights } from "@/lib/api/admin-client";
 
 type MonthlyItem = { month?: string; revenue?: number; orders?: number; credits?: number };
 type GatewayItem = { gateway?: string; total?: number; orders?: number };
@@ -21,74 +18,36 @@ type Summary = {
   growth?: Record<string, number>;
 };
 
-export default function AdminDashboardPage() {
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [monthly, setMonthly] = useState<MonthlyItem[]>([]);
-  const [gateways, setGateways] = useState<GatewayItem[]>([]);
-  const [topPackages, setTopPackages] = useState<PackageItem[]>([]);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function load() {
-      setError(null);
-      const res = await getFullInsights();
-      if (!res.ok) {
-        setError((res.data as { message?: string })?.message ?? "Failed to load insights");
-        setLoading(false);
-        return;
-      }
-      const d = res.data as {
-        summary?: Summary;
-        monthlyRevenue?: MonthlyItem[];
-        gatewayBreakdown?: GatewayItem[];
-        topPackages?: PackageItem[];
-        activity?: ActivityItem[];
-      };
-      setSummary(d.summary ?? null);
-      setMonthly(Array.isArray(d.monthlyRevenue) ? d.monthlyRevenue : []);
-      setGateways(Array.isArray(d.gatewayBreakdown) ? d.gatewayBreakdown : []);
-      setTopPackages(Array.isArray(d.topPackages) ? d.topPackages : []);
-      setActivity(Array.isArray(d.activity) ? d.activity : []);
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  const growth = summary?.growth ?? {};
-  const maxRevenue = Math.max(...monthly.map((m) => m.revenue ?? 0), 1);
-
-  if (loading) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8 transition-colors duration-300">
-        <div className="mb-8">
-          <div className="h-8 w-48 rounded-xl bg-[var(--muted)] animate-pulse" />
-          <div className="mt-2 h-4 w-64 rounded-lg bg-[var(--muted)] animate-pulse" />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-10">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 rounded-xl bg-[var(--muted)] animate-pulse" />
-          ))}
-        </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="h-80 rounded-xl bg-[var(--muted)] animate-pulse" />
-          <div className="h-80 rounded-xl bg-[var(--muted)] animate-pulse" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
+export default async function AdminDashboardPage() {
+  const res = await getFullInsights();
+  if (!res.ok) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-6 text-red-700 dark:text-red-400">
           <p className="font-medium">Unable to load insights</p>
-          <p className="mt-1 text-sm">{error}</p>
+          <p className="mt-1 text-sm">
+            {(res.data as { message?: string })?.message ?? "Failed to load insights"}
+          </p>
         </div>
       </div>
     );
   }
+
+  const d = res.data as {
+    summary?: Summary;
+    monthlyRevenue?: MonthlyItem[];
+    gatewayBreakdown?: GatewayItem[];
+    topPackages?: PackageItem[];
+    activity?: ActivityItem[];
+  };
+  const summary = d.summary ?? null;
+  const monthly = Array.isArray(d.monthlyRevenue) ? d.monthlyRevenue : [];
+  const gateways = Array.isArray(d.gatewayBreakdown) ? d.gatewayBreakdown : [];
+  const topPackages = Array.isArray(d.topPackages) ? d.topPackages : [];
+  const activity = Array.isArray(d.activity) ? d.activity : [];
+
+  const growth = summary?.growth ?? {};
+  const maxRevenue = Math.max(...monthly.map((m) => m.revenue ?? 0), 1);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 transition-colors duration-300">

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { Token } from "@/lib/api/admin-api";
-import { revokeToken } from "@/lib/api/admin-api";
+import { useRouter } from "next/navigation";
+import type { Token } from "@/lib/types/admin";
+import { revokeTokenAction } from "@/app/admin/actions";
 
 function getDeviceLabel(ua?: string): string {
   if (!ua) return "Unknown";
@@ -18,39 +19,34 @@ function getDeviceLabel(ua?: string): string {
   return "Desktop";
 }
 
-export function TokensTable({
-  tokens,
-  onRevoked,
-}: {
-  tokens: Token[];
-  onRevoked?: () => void;
-}) {
+export function TokensTable({ tokens }: { tokens: Token[] }) {
+  const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleRevoke = async (tokenId: string) => {
     if (!confirm("Revoke this token? The user will be logged out.")) return;
     setLoading(tokenId);
     try {
-      const { ok, data } = await revokeToken(tokenId);
-      if (ok) onRevoked?.();
-      else alert((data as { message?: string })?.message ?? "Failed to revoke token.");
+      const result = await revokeTokenAction(tokenId);
+      if (result.ok) router.refresh();
+      else alert(result.error ?? "Failed to revoke token.");
     } finally {
       setLoading(null);
     }
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm">
       {tokens.length === 0 ? (
-        <div className="p-12 text-center text-zinc-500 dark:text-zinc-400">
+        <div className="p-12 text-center text-[var(--muted-foreground)]">
           No active tokens
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
-                <th className="px-6 py-4 text-left font-medium text-zinc-600 dark:text-zinc-400">
+              <tr className="border-b border-[var(--border)] bg-[var(--muted)]/50">
+                <th className="px-4 py-4 text-left font-medium text-[var(--muted-foreground)] sm:px-6">
                   User
                 </th>
                 <th className="px-6 py-4 text-left font-medium text-zinc-600 dark:text-zinc-400">
@@ -80,32 +76,32 @@ export function TokensTable({
                 return (
                   <tr
                     key={id}
-                    className="border-b border-zinc-100 dark:border-zinc-800 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/30"
+                    className="border-b border-[var(--border)] last:border-0 transition-colors hover:bg-[var(--muted)]/30"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 sm:px-6">
                       {uid ? (
-                        <Link href={`/admin/users/${uid}`} className="text-zinc-900 dark:text-zinc-50 hover:underline font-medium">
+                        <Link href={`/admin/users/${uid}`} className="font-medium text-[var(--foreground)] hover:underline">
                           {userLabel}
                         </Link>
                       ) : (
-                        <span className="text-zinc-900 dark:text-zinc-50">{userLabel}</span>
+                        <span className="text-[var(--foreground)]">{userLabel}</span>
                       )}
                       {token.email && token.username !== token.email && (
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{token.email}</p>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{token.email}</p>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-zinc-600 dark:text-zinc-400">
+                    <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
                       {deviceLabel}
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-zinc-600 dark:text-zinc-400">
+                    <td className="px-4 py-4 font-mono text-xs text-[var(--muted-foreground)] sm:px-6">
                       {device?.ipAddress ?? "—"}
                     </td>
-                    <td className="px-6 py-4 text-zinc-600 dark:text-zinc-400">
+                    <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
                       {token.createdAt
                         ? new Date(token.createdAt).toLocaleString()
                         : "—"}
                     </td>
-                    <td className="px-6 py-4 text-zinc-600 dark:text-zinc-400">
+                    <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
                       {token.expiresAt
                         ? new Date(token.expiresAt).toLocaleString()
                         : "—"}

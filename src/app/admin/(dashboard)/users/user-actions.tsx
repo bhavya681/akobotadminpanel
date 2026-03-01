@@ -2,16 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { User } from "@/lib/api/admin-api";
+import type { User } from "@/lib/types/admin";
 import {
-  banUser,
-  unbanUser,
-  deleteUser,
-  resetUserPassword,
-  makeUserAdmin,
-} from "@/lib/api/admin-api";
+  banUserAction,
+  unbanUserAction,
+  deleteUserAction,
+  resetUserPasswordAction,
+  makeUserAdminAction,
+} from "@/app/admin/actions";
 
-export function UserActions({ user, onRefetch }: { user: User; onRefetch?: () => void }) {
+export function UserActions({ user }: { user: User }) {
   const router = useRouter();
   const id = user._id ?? user.id ?? "";
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -20,14 +20,14 @@ export function UserActions({ user, onRefetch }: { user: User; onRefetch?: () =>
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleAction = async (
-    action: () => Promise<{ ok: boolean; status: number; data: unknown }>,
+    action: () => Promise<{ ok: boolean; error?: string }>,
     key: string
   ) => {
     setLoading(key);
     try {
       const r = await action();
-      if (r.ok && r.status === 200) onRefetch?.() ?? router.refresh();
-      else alert((r.data as { message?: string })?.message ?? "Action failed");
+      if (r.ok) router.refresh();
+      else alert(r.error ?? "Action failed");
     } finally {
       setLoading(null);
     }
@@ -40,12 +40,12 @@ export function UserActions({ user, onRefetch }: { user: User; onRefetch?: () =>
       return;
     }
     setPasswordError("");
-    const r = await resetUserPassword(id, newPassword);
-    if (r.ok && r.status === 200) {
+    const r = await resetUserPasswordAction(id, newPassword);
+    if (r.ok) {
       setShowPasswordModal(false);
       setNewPassword("");
-      onRefetch?.() ?? router.refresh();
-    } else setPasswordError((r.data as { message?: string })?.message ?? "Failed to reset");
+      router.refresh();
+    } else setPasswordError(r.error ?? "Failed to reset");
   };
 
   return (
@@ -58,7 +58,7 @@ export function UserActions({ user, onRefetch }: { user: User; onRefetch?: () =>
       </a>
       {user.isBanned ? (
         <button
-          onClick={() => handleAction(() => unbanUser(id), "unban")}
+          onClick={() => handleAction(() => unbanUserAction(id), "unban")}
           disabled={!!loading}
           className="text-sm font-medium text-green-600 dark:text-green-400 hover:underline disabled:opacity-50"
         >
@@ -66,7 +66,7 @@ export function UserActions({ user, onRefetch }: { user: User; onRefetch?: () =>
         </button>
       ) : (
         <button
-          onClick={() => handleAction(() => banUser(id), "ban")}
+          onClick={() => handleAction(() => banUserAction(id), "ban")}
           disabled={!!loading}
           className="text-sm font-medium text-amber-600 dark:text-amber-400 hover:underline disabled:opacity-50"
         >
@@ -75,7 +75,7 @@ export function UserActions({ user, onRefetch }: { user: User; onRefetch?: () =>
       )}
       {!user.isAdmin && user.role !== "admin" && (
         <button
-          onClick={() => handleAction(() => makeUserAdmin(id), "admin")}
+          onClick={() => handleAction(() => makeUserAdminAction(id), "admin")}
           disabled={!!loading}
           className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
         >
@@ -91,7 +91,7 @@ export function UserActions({ user, onRefetch }: { user: User; onRefetch?: () =>
       <button
         onClick={() => {
           if (confirm("Delete this user? This cannot be undone.")) {
-            handleAction(() => deleteUser(id), "delete");
+            handleAction(() => deleteUserAction(id), "delete");
           }
         }}
         disabled={!!loading}

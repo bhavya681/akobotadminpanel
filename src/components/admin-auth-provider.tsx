@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AdminNav } from "@/app/admin/(dashboard)/admin-nav";
-import { getToken, clearToken } from "@/lib/api/admin-api";
 
 function MenuIcon({ className }: { className?: string }) {
   return (
@@ -38,19 +36,7 @@ function LogOutIcon({ className }: { className?: string }) {
 }
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const token = getToken();
-    if (!token) {
-      router.replace("/admin/login");
-      return;
-    }
-    setReady(true);
-  }, [router]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -59,22 +45,6 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const handleLogout = () => {
-    clearToken();
-    router.replace("/admin/login");
-  };
-
-  if (!ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-48 animate-pulse rounded-xl bg-[var(--muted)]" />
-          <p className="text-sm text-[var(--muted-foreground)]">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen bg-[var(--background)] transition-colors duration-300">
@@ -114,14 +84,15 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           <AdminNav onNavigate={() => setSidebarOpen(false)} />
         </nav>
         <div className="border-t border-[var(--sidebar-border)] p-4">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-          >
-            <LogOutIcon />
-            Sign out
-          </button>
+          <form action="/admin/logout" method="POST" className="w-full">
+            <button
+              type="submit"
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              <LogOutIcon />
+              Sign out
+            </button>
+          </form>
         </div>
       </aside>
 

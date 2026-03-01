@@ -1,46 +1,22 @@
-"use client";
-
-import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
-import { getUserById, type User } from "@/lib/api/admin-api";
+import { getUserById } from "@/lib/api/admin-client";
 import { UserEditForm } from "./user-edit-form";
 
-export default function UserDetailPage() {
-  const params = useParams();
-  const id = params.id as string;
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+export default async function UserDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const { ok, data } = await getUserById(id);
 
-  const loadUser = useCallback(async () => {
-    const { ok, data } = await getUserById(id);
-    if (!ok || !data || "message" in data) {
-      setNotFound(true);
-    } else {
-      setUser(data as User);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    loadUser().finally(() => setLoading(false));
-  }, [loadUser]);
-
-  if (loading) {
+  if (!ok || !data || "message" in data) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[200px]">
-        <div className="h-10 w-48 animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-700" />
-      </div>
-    );
-  }
-
-  if (notFound || !user) {
-    return (
-      <div className="p-8">
-        <p className="text-zinc-500 dark:text-zinc-400">User not found</p>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <p className="text-[var(--muted-foreground)]">User not found</p>
         <Link
           href="/admin/users"
-          className="mt-4 inline-block text-sm text-zinc-600 dark:text-zinc-300 hover:underline"
+          className="mt-4 inline-block text-sm text-[var(--foreground)] hover:underline"
         >
           ← Back to users
         </Link>
@@ -48,24 +24,37 @@ export default function UserDetailPage() {
     );
   }
 
+  const user = data as import("@/lib/api/admin-client").User;
+
   return (
-    <div className="p-8 transition-colors duration-300">
+    <div className="p-4 sm:p-6 lg:p-8 transition-colors duration-300">
       <Link
         href="/admin/users"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+        className="mb-6 inline-flex items-center gap-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
       >
-        ← Back to users
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+        Back to users
       </Link>
 
       <header className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
           Edit user
         </h1>
-        <p className="mt-1 text-zinc-500 dark:text-zinc-400">{user.email}</p>
+        <p className="mt-2 text-[var(--muted-foreground)]">{user.email}</p>
       </header>
 
       <div className="max-w-xl">
-        <UserEditForm user={user} onSaved={loadUser} />
+        <UserEditForm user={user} />
       </div>
     </div>
   );

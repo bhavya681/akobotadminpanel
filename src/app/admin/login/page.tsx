@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { login } from "@/lib/api/admin-api";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -23,11 +22,16 @@ export default function AdminLoginPage() {
     }
     setLoading(true);
     try {
-      const result = await login(identifier.trim(), password);
-      if (result.ok) {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: identifier.trim(), password }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string };
+      if (res.ok && data.success) {
         router.replace("/admin");
       } else {
-        setError(result.error ?? "Invalid credentials");
+        setError(data.error ?? "Invalid credentials");
       }
     } catch {
       setError("Unable to connect. Check your connection and try again.");

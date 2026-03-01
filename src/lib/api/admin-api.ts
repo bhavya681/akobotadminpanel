@@ -44,13 +44,6 @@ async function fetchApi<T>(
     headers: { ...getHeaders(), ...(options.headers as Record<string, string>) },
   });
   const data = (await res.json().catch(() => ({}))) as T;
-  if (res.status === 401 && typeof window !== "undefined") {
-    const isLoginPage = window.location.pathname === "/admin/login" || window.location.pathname === "/";
-    if (!isLoginPage) {
-      clearToken();
-      window.location.href = "/admin/login";
-    }
-  }
   return { ok: res.ok, status: res.status, data };
 }
 
