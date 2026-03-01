@@ -1,213 +1,363 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  getFullInsights,
-  getInsightsSummary,
-  getMonthlyRevenue,
-  getGatewayBreakdown,
-  getTopPackages,
-  getActivityFeed,
-} from "@/lib/api/admin-client";
+import { getFullInsights } from "@/lib/api/admin-api";
 
-export default async function AdminDashboardPage() {
-  const [insightsRes, summaryRes, monthlyRes, gatewayRes, topRes, activityRes] =
-    await Promise.all([
-      getFullInsights(),
-      getInsightsSummary(),
-      getMonthlyRevenue(12),
-      getGatewayBreakdown(),
-      getTopPackages(10),
-      getActivityFeed(15),
-    ]);
+type MonthlyItem = { month?: string; revenue?: number; orders?: number; credits?: number };
+type GatewayItem = { gateway?: string; total?: number; orders?: number };
+type PackageItem = { name?: string; orderCount?: number; revenue?: number };
+type ActivityItem = {
+  type?: string;
+  icon?: string;
+  message?: string;
+  timestamp?: string;
+  data?: Record<string, unknown>;
+};
+type Summary = {
+  usersCount?: number;
+  revenueTotal?: number;
+  ordersCount?: number;
+  growth?: Record<string, number>;
+};
 
-  const summary = summaryRes.ok ? summaryRes.data : insightsRes.ok ? (insightsRes.data as { summary?: typeof summaryRes.data })?.summary : null;
-  type MonthlyItem = { month?: string; revenue?: number };
-  type GatewayItem = { gateway?: string; total?: number; orders?: number };
-  type PackageItem = { name?: string; orderCount?: number; revenue?: number };
-  type ActivityItem = { type?: string; message?: string; timestamp?: string; icon?: string };
+export default function AdminDashboardPage() {
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [monthly, setMonthly] = useState<MonthlyItem[]>([]);
+  const [gateways, setGateways] = useState<GatewayItem[]>([]);
+  const [topPackages, setTopPackages] = useState<PackageItem[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const monthly: MonthlyItem[] = (monthlyRes.ok
-    ? Array.isArray(monthlyRes.data)
-      ? monthlyRes.data
-      : (monthlyRes.data as { data?: MonthlyItem[] })?.data ?? []
-    : insightsRes.ok
-      ? (insightsRes.data as { monthlyRevenue?: MonthlyItem[] })?.monthlyRevenue ?? []
-    : []) as MonthlyItem[];
-  const gateways: GatewayItem[] = (gatewayRes.ok
-    ? Array.isArray(gatewayRes.data) ? gatewayRes.data : []
-    : insightsRes.ok
-      ? (insightsRes.data as { gatewayBreakdown?: GatewayItem[] })?.gatewayBreakdown ?? []
-    : []) as GatewayItem[];
-  const topPackages: PackageItem[] = (topRes.ok
-    ? Array.isArray(topRes.data)
-      ? topRes.data
-      : (topRes.data as { data?: PackageItem[] })?.data ?? []
-    : insightsRes.ok
-      ? (insightsRes.data as { topPackages?: PackageItem[] })?.topPackages ?? []
-    : []) as PackageItem[];
-  const activity: ActivityItem[] = (activityRes.ok
-    ? Array.isArray(activityRes.data)
-      ? activityRes.data
-      : (activityRes.data as { data?: ActivityItem[] })?.data ?? []
-    : insightsRes.ok
-      ? (insightsRes.data as { activity?: ActivityItem[] })?.activity ?? []
-    : []) as ActivityItem[];
+  useEffect(() => {
+    async function load() {
+      setError(null);
+      const res = await getFullInsights();
+      if (!res.ok) {
+        setError((res.data as { message?: string })?.message ?? "Failed to load insights");
+        setLoading(false);
+        return;
+      }
+      const d = res.data as {
+        summary?: Summary;
+        monthlyRevenue?: MonthlyItem[];
+        gatewayBreakdown?: GatewayItem[];
+        topPackages?: PackageItem[];
+        activity?: ActivityItem[];
+      };
+      setSummary(d.summary ?? null);
+      setMonthly(Array.isArray(d.monthlyRevenue) ? d.monthlyRevenue : []);
+      setGateways(Array.isArray(d.gatewayBreakdown) ? d.gatewayBreakdown : []);
+      setTopPackages(Array.isArray(d.topPackages) ? d.topPackages : []);
+      setActivity(Array.isArray(d.activity) ? d.activity : []);
+      setLoading(false);
+    }
+    load();
+  }, []);
 
-  const stats = [
-    {
-      label: "Total Users",
-      value: (summary as { usersCount?: number })?.usersCount ?? 0,
-      icon: "👥",
-    },
-    {
-      label: "Revenue",
-      value: formatCurrency((summary as { revenueTotal?: number })?.revenueTotal ?? 0),
-      icon: "💰",
-    },
-    {
-      label: "Orders",
-      value: (summary as { ordersCount?: number })?.ordersCount ?? 0,
-      icon: "📦",
-    },
-  ];
+  const growth = summary?.growth ?? {};
+  const maxRevenue = Math.max(...monthly.map((m) => m.revenue ?? 0), 1);
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+        <div className="mb-8">
+          <div className="h-8 w-48 rounded-xl bg-[var(--muted)] animate-pulse" />
+          <div className="mt-2 h-4 w-64 rounded-lg bg-[var(--muted)] animate-pulse" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-xl bg-[var(--muted)] animate-pulse" />
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="h-80 rounded-xl bg-[var(--muted)] animate-pulse" />
+          <div className="h-80 rounded-xl bg-[var(--muted)] animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-6 text-red-700 dark:text-red-400">
+          <p className="font-medium">Unable to load insights</p>
+          <p className="mt-1 text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-8 transition-colors duration-300">
+    <div className="p-4 sm:p-6 lg:p-8 transition-colors duration-300">
       <header className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-          Dashboard
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
+          Insights
         </h1>
-        <p className="mt-1 text-zinc-500 dark:text-zinc-400">
-          Business insights and platform overview
+        <p className="mt-2 text-[var(--muted-foreground)]">
+          Business overview, revenue, and platform activity
         </p>
       </header>
 
+      {/* Stats cards */}
       <section className="mb-10">
-        <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">
+        <h2 className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] mb-4">
           Overview
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm transition-colors duration-300"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{stat.icon}</span>
-                <div>
-                  <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                    {stat.label}
-                  </p>
-                  <p className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-                    {stat.value}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
+          <StatCard
+            label="Total Users"
+            value={summary?.usersCount ?? 0}
+            format="number"
+            icon="👥"
+            growth={growth.usersCount}
+          />
+          <StatCard
+            label="Revenue"
+            value={summary?.revenueTotal ?? 0}
+            format="currency"
+            icon="💰"
+            growth={growth.revenueTotal}
+          />
+          <StatCard
+            label="Orders"
+            value={summary?.ordersCount ?? 0}
+            format="number"
+            icon="📦"
+            growth={growth.ordersCount}
+          />
         </div>
       </section>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm transition-colors duration-300">
-          <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Monthly Revenue Chart */}
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm transition-colors duration-300">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] mb-4">
             Monthly Revenue
           </h2>
           {monthly.length > 0 ? (
             <div className="space-y-3">
-              {monthly.slice(0, 6).map((m, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-600 dark:text-zinc-400">{m.month ?? `Month ${i + 1}`}</span>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-50">
+              {monthly.slice(0, 12).map((m, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="w-24 shrink-0 text-sm text-[var(--muted-foreground)]">
+                    {m.month ?? `M${i + 1}`}
+                  </span>
+                  <div className="flex-1 h-8 bg-[var(--muted)] rounded-lg overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 dark:bg-emerald-600 rounded-lg transition-all duration-500 min-w-[2px]"
+                      style={{
+                        width: `${Math.max(2, ((m.revenue ?? 0) / maxRevenue) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="w-20 shrink-0 text-right text-sm font-medium text-[var(--foreground)]">
                     {formatCurrency(m.revenue ?? 0)}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">No revenue data yet</p>
+            <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">
+              No revenue data yet
+            </p>
           )}
         </section>
 
-        <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm transition-colors duration-300">
-          <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">
+        {/* Revenue by Gateway */}
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm transition-colors duration-300">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] mb-4">
             Revenue by Gateway
           </h2>
           {gateways.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {gateways.map((g, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
-                  <span className="capitalize text-zinc-600 dark:text-zinc-400">{g.gateway ?? "Unknown"}</span>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-50">
-                    {formatCurrency(g.total ?? 0)} ({g.orders ?? 0} orders)
-                  </span>
+                <div key={i}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium capitalize text-[var(--foreground)]">
+                      {g.gateway ?? "Unknown"}
+                    </span>
+                    <span className="text-[var(--muted-foreground)]">
+                      {formatCurrency(g.total ?? 0)} · {g.orders ?? 0} orders
+                    </span>
+                  </div>
+                  <div className="h-2 bg-[var(--muted)] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-violet-500 dark:bg-violet-600 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${summary?.revenueTotal ? ((g.total ?? 0) / summary.revenueTotal) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">No gateway data yet</p>
+            <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">
+              No gateway data yet
+            </p>
           )}
         </section>
 
-        <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm transition-colors duration-300">
-          <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">
+        {/* Top Packages */}
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm transition-colors duration-300">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] mb-4">
             Top Packages
           </h2>
           {topPackages.length > 0 ? (
             <div className="space-y-3">
               {topPackages.map((p, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-600 dark:text-zinc-400">{p.name ?? `Package ${i + 1}`}</span>
-                  <span className="font-medium text-zinc-900 dark:text-zinc-50">
-                    {p.orderCount ?? 0} orders · {formatCurrency(p.revenue ?? 0)}
+                <div
+                  key={i}
+                  className="flex items-center gap-4 rounded-lg border border-[var(--border)] p-3 transition-colors hover:bg-[var(--muted)]/50"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--muted)] text-sm font-semibold text-[var(--muted-foreground)]">
+                    {i + 1}
                   </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-[var(--foreground)] truncate">
+                      {p.name ?? `Package ${i + 1}`}
+                    </p>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      {p.orderCount ?? 0} orders · {formatCurrency(p.revenue ?? 0)}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">No package data yet</p>
+            <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">
+              No package data yet
+            </p>
           )}
         </section>
 
-        <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm transition-colors duration-300">
-          <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">
+        {/* Activity Feed */}
+        <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm transition-colors duration-300">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] mb-4">
             Recent Activity
           </h2>
           {activity.length > 0 ? (
-            <ul className="space-y-3 max-h-64 overflow-y-auto">
+            <ul className="space-y-0 max-h-80 overflow-y-auto">
               {activity.map((a, i) => (
-                <li key={i} className="flex gap-3 text-sm border-b border-zinc-100 dark:border-zinc-800 pb-3 last:border-0 last:pb-0">
-                  <span className="shrink-0">{a.icon ?? "•"}</span>
-                  <div>
-                    <p className="text-zinc-700 dark:text-zinc-300">{a.message ?? a.type ?? "Activity"}</p>
+                <li
+                  key={i}
+                  className="flex gap-3 py-3 border-b border-[var(--border)] last:border-0"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--muted)] text-base">
+                    {a.icon ?? getActivityIcon(a.type)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[var(--foreground)]">
+                      {a.message ?? a.type ?? "Activity"}
+                    </p>
                     {a.timestamp && (
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{formatDate(a.timestamp)}</p>
+                      <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                        {formatDate(a.timestamp)}
+                      </p>
                     )}
                   </div>
+                  {a.type && (
+                    <span className="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium bg-[var(--muted)] text-[var(--muted-foreground)]">
+                      {a.type}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">No recent activity</p>
+            <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">
+              No recent activity
+            </p>
           )}
         </section>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-4">
+      <div className="mt-8 flex flex-wrap gap-3">
         <Link
           href="/admin/users"
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
         >
-          Manage users →
+          Manage users
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
         </Link>
         <Link
           href="/admin/tokens"
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
         >
-          Active tokens →
+          Active tokens
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
         </Link>
       </div>
     </div>
   );
+}
+
+function StatCard({
+  label,
+  value,
+  format,
+  icon,
+  growth,
+}: {
+  label: string;
+  value: number;
+  format: "number" | "currency";
+  icon: string;
+  growth?: number;
+}) {
+  const displayValue =
+    format === "currency" ? formatCurrency(value) : value.toLocaleString();
+  const hasGrowth = typeof growth === "number" && growth !== 0;
+
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm transition-colors duration-300">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--muted)] text-2xl">
+            {icon}
+          </span>
+          <div>
+            <p className="text-sm font-medium text-[var(--muted-foreground)]">
+              {label}
+            </p>
+            <p className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+              {displayValue}
+            </p>
+          </div>
+        </div>
+        {hasGrowth && (
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              growth > 0
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+            }`}
+          >
+            {growth > 0 ? "+" : ""}
+            {growth}%
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function getActivityIcon(type?: string): string {
+  const map: Record<string, string> = {
+    signup: "👤",
+    payment: "💳",
+    failed_payment: "⚠️",
+    bonus: "🎁",
+    ban: "🚫",
+    order: "📦",
+  };
+  return map[type ?? ""] ?? "•";
 }
 
 function formatCurrency(n: number): string {
@@ -220,8 +370,7 @@ function formatCurrency(n: number): string {
 
 function formatDate(s: string): string {
   try {
-    const d = new Date(s);
-    return d.toLocaleString();
+    return new Date(s).toLocaleString();
   } catch {
     return s;
   }

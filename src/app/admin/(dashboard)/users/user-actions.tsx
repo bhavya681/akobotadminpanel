@@ -2,16 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { User } from "@/lib/api/admin-client";
+import type { User } from "@/lib/api/admin-api";
 import {
-  banUserAction,
-  unbanUserAction,
-  deleteUserAction,
-  resetPasswordAction,
-  makeAdminAction,
-} from "./actions";
+  banUser,
+  unbanUser,
+  deleteUser,
+  resetUserPassword,
+  makeUserAdmin,
+} from "@/lib/api/admin-api";
 
-export function UserActions({ user }: { user: User }) {
+export function UserActions({ user, onRefetch }: { user: User; onRefetch?: () => void }) {
   const router = useRouter();
   const id = user._id ?? user.id ?? "";
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -20,14 +20,14 @@ export function UserActions({ user }: { user: User }) {
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleAction = async (
-    action: () => Promise<{ success?: boolean; error?: string }>,
+    action: () => Promise<{ ok: boolean; status: number; data: unknown }>,
     key: string
   ) => {
     setLoading(key);
     try {
       const r = await action();
-      if (r?.success) router.refresh();
-      else if (r?.error) alert(r.error);
+      if (r.ok && r.status === 200) onRefetch?.() ?? router.refresh();
+      else alert((r.data as { message?: string })?.message ?? "Action failed");
     } finally {
       setLoading(null);
     }
@@ -40,12 +40,12 @@ export function UserActions({ user }: { user: User }) {
       return;
     }
     setPasswordError("");
-    const r = await resetPasswordAction(id, newPassword);
-    if (r?.success) {
+    const r = await resetUserPassword(id, newPassword);
+    if (r.ok && r.status === 200) {
       setShowPasswordModal(false);
       setNewPassword("");
-      router.refresh();
-    } else if (r?.error) setPasswordError(r.error);
+      onRefetch?.() ?? router.refresh();
+    } else setPasswordError((r.data as { message?: string })?.message ?? "Failed to reset");
   };
 
   return (
@@ -58,7 +58,7 @@ export function UserActions({ user }: { user: User }) {
       </a>
       {user.isBanned ? (
         <button
-          onClick={() => handleAction(() => unbanUserAction(id), "unban")}
+          onClick={() => handleAction(() => unbanUser(id), "unban")}
           disabled={!!loading}
           className="text-sm font-medium text-green-600 dark:text-green-400 hover:underline disabled:opacity-50"
         >
@@ -66,7 +66,7 @@ export function UserActions({ user }: { user: User }) {
         </button>
       ) : (
         <button
-          onClick={() => handleAction(() => banUserAction(id), "ban")}
+          onClick={() => handleAction(() => banUser(id), "ban")}
           disabled={!!loading}
           className="text-sm font-medium text-amber-600 dark:text-amber-400 hover:underline disabled:opacity-50"
         >
@@ -75,7 +75,7 @@ export function UserActions({ user }: { user: User }) {
       )}
       {!user.isAdmin && user.role !== "admin" && (
         <button
-          onClick={() => handleAction(() => makeAdminAction(id), "admin")}
+          onClick={() => handleAction(() => makeUserAdmin(id), "admin")}
           disabled={!!loading}
           className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
         >
@@ -91,7 +91,7 @@ export function UserActions({ user }: { user: User }) {
       <button
         onClick={() => {
           if (confirm("Delete this user? This cannot be undone.")) {
-            handleAction(() => deleteUserAction(id), "delete");
+            handleAction(() => deleteUser(id), "delete");
           }
         }}
         disabled={!!loading}

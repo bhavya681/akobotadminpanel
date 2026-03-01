@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import type { User } from "@/lib/api/admin-client";
+import type { User } from "@/lib/api/admin-api";
 import { UserActions } from "./user-actions";
 
 interface UsersTableProps {
@@ -12,6 +12,7 @@ interface UsersTableProps {
   page: number;
   limit: number;
   totalPages: number;
+  onRefetch?: () => void;
   filters: {
     email?: string;
     username?: string;
@@ -27,6 +28,7 @@ export function UsersTable({
   page,
   limit,
   totalPages,
+  onRefetch,
   filters,
 }: UsersTableProps) {
   const router = useRouter();
@@ -145,7 +147,7 @@ export function UsersTable({
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <UserActions user={user} />
+                      <UserActions user={user} onRefetch={onRefetch} />
                     </td>
                   </tr>
                 ))}

@@ -1,15 +1,15 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.akobot.ai";
+import { login } from "@/lib/api/admin-api";
 
 function HomeLoginForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const error = searchParams.get("error");
   const [isPending, setIsPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -22,40 +22,19 @@ function HomeLoginForm() {
     const identifier = (form.elements.namedItem("identifier") as HTMLInputElement)?.value?.trim();
     const password = (form.elements.namedItem("password") as HTMLInputElement)?.value;
 
+    if (!identifier || !password) {
+      setSubmitError("Identifier and password are required.");
+      setIsPending(false);
+      return;
+    }
+
     try {
-      const base = API_URL.replace(/\/$/, "");
-      let res: Response;
-      let data: { accessToken?: string; token?: string; message?: string };
-      try {
-        res = await fetch(`${base}/admin/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Accept": "application/json" },
-          body: JSON.stringify({ identifier, password }),
-        });
-        data = (await res.json().catch(() => ({}))) as typeof data;
-      } catch {
-        const proxyRes = await fetch("/api/admin/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ identifier, password }),
-        });
-        const proxyData = (await proxyRes.json().catch(() => ({}))) as { success?: boolean; token?: string; error?: string };
-        if (proxyData.success && proxyData.token) {
-          await fetch("/api/admin/set-session?t=" + encodeURIComponent(proxyData.token), { credentials: "include" });
-          window.location.href = "/admin";
-          return;
-        }
-        setSubmitError(proxyData.error || "Login failed. Please try again.");
-        return;
+      const result = await login(identifier, password);
+      if (result.ok) {
+        router.replace("/admin");
+      } else {
+        setSubmitError(result.error ?? "Login failed. Please try again.");
       }
-      const token = data.accessToken ?? data.token;
-      if (token && (res.status === 200 || res.status === 201)) {
-        await fetch("/api/admin/set-session?t=" + encodeURIComponent(token), { credentials: "include" });
-        window.location.href = "/admin";
-        return;
-      }
-      const errMsg = res.status === 401 ? "Invalid credentials or insufficient privileges." : (data.message || "Login failed. Please try again.");
-      setSubmitError(errMsg);
     } catch {
       setSubmitError("Network error. Please try again.");
     } finally {
