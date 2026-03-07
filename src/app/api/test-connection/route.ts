@@ -4,7 +4,7 @@ const API_BASE =
   process.env.API_URL ??
   process.env.VITE_API_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
-  "https://api.akobot.ai";
+  "https://api.Akobot.ai";
 
 export async function GET() {
   const url = `${API_BASE.replace(/\/$/, "")}/admin/auth/login`;

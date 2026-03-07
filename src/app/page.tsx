@@ -49,8 +49,8 @@ function HomeLoginForm() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Akeo" width={36} height={36} priority className="h-9 w-9 rounded-lg" />
-            <span className="text-xl font-bold tracking-tight text-[var(--foreground)]">Akeo</span>
+            <Image src="/logo.png" alt="Akobot" width={36} height={36} priority className="h-9 w-9 rounded-lg" />
+            <span className="text-xl font-bold tracking-tight text-[var(--foreground)]">Akobot</span>
           </Link>
           <div className="flex items-center gap-4" suppressHydrationWarning>
             <ThemeToggle />
@@ -67,7 +67,7 @@ function HomeLoginForm() {
       <main className="flex min-h-screen flex-col items-center justify-center px-4 sm:px-6 pt-16 pb-8">
         <div className="w-full max-w-md">
           <div className="mb-8 flex flex-col items-center text-center">
-            <Image src="/logo.png" alt="Akeo" width={64} height={64} className="mb-4 h-16 w-16 rounded-xl" priority />
+            <Image src="/logo.png" alt="Akobot" width={64} height={64} className="mb-4 h-16 w-16 rounded-xl" priority />
             <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
               Welcome back
             </h1>

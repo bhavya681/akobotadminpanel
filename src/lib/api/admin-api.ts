@@ -5,8 +5,8 @@
 
 const API_BASE =
   (typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_API_URL ?? "https://api.akobot.ai")
-    : "https://api.akobot.ai"
+    ? (process.env.NEXT_PUBLIC_API_URL ?? "https://api.Akobot.ai")
+    : "https://api.Akobot.ai"
   ).replace(/\/$/, "");
 
 const TOKEN_KEY = "admin_token";

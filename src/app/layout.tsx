@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Akeo Admin Panel",
+  title: "Akobot Admin Panel",
   description: "Admin dashboard and management",
   icons: {
     icon: "/logo.png",
@@ -38,7 +38,7 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('akeo-theme');
+                  var theme = localStorage.getItem('Akobot-theme');
                   var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                   var isDark = theme === 'dark' || (theme === 'system' && systemDark) || (!theme && systemDark);
                   document.documentElement.classList.toggle('dark', isDark);

@@ -9,7 +9,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       defaultTheme="system"
       enableSystem
       enableColorScheme
-      storageKey="akeo-theme"
+      storageKey="Akobot-theme"
       disableTransitionOnChange={false}
     >
       {children}

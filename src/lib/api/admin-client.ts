@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const API_BASE =
-  (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "https://api.akobot.ai").replace(
+  (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "https://api.Akobot.ai").replace(
     /\/$/,
     ""
   );
@@ -26,7 +26,7 @@ async function fetchAdmin<T>(
   });
   const data = (await res.json().catch(() => ({}))) as T;
   if (res.status === 401) {
-    redirect("/admin/logout");
+    redirect("/api/admin/refresh?redirect=" + encodeURIComponent("/admin"));
   }
   return { ok: res.ok, status: res.status, data };
 }

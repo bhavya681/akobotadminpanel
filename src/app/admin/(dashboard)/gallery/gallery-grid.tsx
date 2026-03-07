@@ -231,9 +231,9 @@ export function GalleryGrid({
               return (
                 <div
                   key={id}
-                  className="group relative rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-sm transition-all hover:shadow-md"
+                  className="group relative rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm transition-all hover:shadow-md"
                 >
-                  <div className="aspect-square bg-[var(--muted)] relative">
+                  <div className="aspect-square bg-[var(--muted)] relative overflow-hidden rounded-t-xl">
                     {!mediaUrl ? (
                       <div className="w-full h-full flex items-center justify-center text-[var(--muted-foreground)] text-sm">
                         No preview
@@ -283,48 +283,58 @@ export function GalleryGrid({
                         type="button"
                         onClick={() => setOpenDropdownId(openDropdownId === id ? null : id)}
                         disabled={isBusy}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 focus:ring-offset-[var(--card)]"
                         aria-label="Actions"
+                        aria-expanded={openDropdownId === id}
+                        aria-haspopup="true"
                       >
                         <MoreVerticalIcon />
                       </button>
                       {openDropdownId === id && (
                         <div
-                          className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-lg border border-[var(--border)] bg-[var(--card)] py-1 shadow-lg"
+                          className="absolute right-0 bottom-full z-[100] mb-1 min-w-[180px] rounded-xl border border-[var(--border)] bg-[var(--card)] py-1.5 shadow-2xl shadow-black/10 dark:shadow-black/40 ring-1 ring-black/5 dark:ring-white/10"
                           role="menu"
                         >
                           <a
                             href={item.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)] focus:bg-[var(--muted)] focus:outline-none"
                             role="menuitem"
                           >
-                            <EyeIcon />
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--muted)] text-[var(--muted-foreground)]">
+                              <EyeIcon className="text-[var(--foreground)]" />
+                            </span>
                             View full
                           </a>
+                          <div className="my-1 border-t border-[var(--border)]" role="separator" />
                           <button
                             type="button"
                             role="menuitem"
                             onClick={() => handleTogglePrivate(item)}
                             disabled={isBusy}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-amber-600 dark:text-amber-400 transition-colors hover:bg-[var(--muted)] disabled:opacity-50"
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-amber-600 dark:text-amber-400 transition-colors hover:bg-[var(--muted)] focus:bg-[var(--muted)] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <LockIcon />
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 dark:bg-amber-400/10 text-amber-600 dark:text-amber-400">
+                              <LockIcon />
+                            </span>
                             {isBusy
-                              ? "..."
+                              ? "Updating..."
                               : item.isPrivate
                                 ? "Make public"
                                 : "Make private"}
                           </button>
+                          <div className="my-1 border-t border-[var(--border)]" role="separator" />
                           <button
                             type="button"
                             role="menuitem"
                             onClick={() => handleDelete(item)}
                             disabled={isBusy}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 transition-colors hover:bg-[var(--muted)] disabled:opacity-50"
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 focus:bg-red-50 dark:focus:bg-red-950/30 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <TrashIcon />
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10 dark:bg-red-400/10 text-red-600 dark:text-red-400">
+                              <TrashIcon />
+                            </span>
                             Delete
                           </button>
                         </div>

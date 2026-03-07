@@ -65,7 +65,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--sidebar-border)] px-4 lg:px-6">
           <Link href="/admin" className="flex items-center gap-3" onClick={() => setSidebarOpen(false)}>
-            <Image src="/logo.png" alt="Akeo" width={32} height={32} className="h-8 w-8 shrink-0 rounded-lg" />
+            <Image src="/logo.png" alt="Akobot" width={32} height={32} className="h-8 w-8 shrink-0 rounded-lg" />
             <span className="text-lg font-semibold text-[var(--foreground)]">Admin Panel</span>
           </Link>
           <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
             <MenuIcon />
           </button>
           <Link href="/admin" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Akeo" width={28} height={28} className="h-7 w-7 rounded-lg" />
+            <Image src="/logo.png" alt="Akobot" width={28} height={28} className="h-7 w-7 rounded-lg" />
             <span className="font-semibold text-[var(--foreground)]">Admin</span>
           </Link>
         </header>

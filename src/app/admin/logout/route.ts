@@ -12,11 +12,15 @@ function getOrigin(request: NextRequest): string {
 export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
   cookieStore.delete("admin_token");
+  cookieStore.delete("admin_refresh_token");
+  cookieStore.delete("admin_token_refreshed_at");
   return NextResponse.redirect(new URL("/admin/login", getOrigin(request)));
 }
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
   cookieStore.delete("admin_token");
+  cookieStore.delete("admin_refresh_token");
+  cookieStore.delete("admin_token_refreshed_at");
   return NextResponse.redirect(new URL("/admin/login", getOrigin(request)));
 }

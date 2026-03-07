@@ -85,7 +85,7 @@ function WalletIcon({ className }: { className?: string }) {
 const navItems = [
   { href: "/admin", label: "Insights", icon: ChartIcon },
   { href: "/admin/users", label: "Users", icon: UsersIcon },
-  { href: "/admin/tokens", label: "Tokens", icon: KeyIcon },
+  // { href: "/admin/tokens", label: "Tokens", icon: KeyIcon },
   { href: "/admin/wallet", label: "Wallet", icon: WalletIcon },
   { href: "/admin/packages", label: "Packages", icon: PackageIcon },
   { href: "/admin/models", label: "Models", icon: CpuIcon },

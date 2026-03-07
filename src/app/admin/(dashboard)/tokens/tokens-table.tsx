@@ -15,7 +15,7 @@ function getDeviceLabel(ua?: string): string {
   if (ua.includes("Chrome")) return "Chrome";
   if (ua.includes("Safari")) return "Safari";
   if (ua.includes("Firefox")) return "Firefox";
-  if (ua.includes("Akeo-AdminPanel")) return "Admin Panel";
+  if (ua.includes("Akobot-AdminPanel")) return "Admin Panel";
   return "Desktop";
 }
 

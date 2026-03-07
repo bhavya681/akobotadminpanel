@@ -1,43 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export default function AdminLoginPage() {
-  const router = useRouter();
+function LoginForm() {
+  const searchParams = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    const err = searchParams.get("error");
+    if (err) setError(decodeURIComponent(err));
+  }, [searchParams]);
+
+  const handleSubmit = (e: React.FormEvent) => {
     setError("");
     if (!identifier.trim() || !password) {
       setError("Identifier and password are required.");
+      e.preventDefault();
       return;
     }
     setLoading(true);
-    try {
-      const res = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: identifier.trim(), password }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string };
-      if (res.ok && data.success) {
-        router.replace("/admin");
-      } else {
-        setError(data.error ?? "Invalid credentials");
-      }
-    } catch {
-      setError("Unable to connect. Check your connection and try again.");
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -62,7 +50,7 @@ export default function AdminLoginPage() {
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-xl shadow-black/5 dark:shadow-black/20 transition-colors duration-300">
           <div className="mb-8 flex flex-col items-center text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--muted)]">
-              <Image src="/logo.png" alt="Akeo" width={40} height={40} className="h-10 w-10" />
+              <Image src="/logo.png" alt="Akobot" width={40} height={40} className="h-10 w-10" />
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
               Admin Login
@@ -72,7 +60,12 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form
+            action="/api/admin/login"
+            method="POST"
+            onSubmit={handleSubmit}
+            className="space-y-5"
+          >
             <div>
               <label
                 htmlFor="identifier"
@@ -82,6 +75,7 @@ export default function AdminLoginPage() {
               </label>
               <input
                 id="identifier"
+                name="identifier"
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
@@ -101,6 +95,7 @@ export default function AdminLoginPage() {
               </label>
               <input
                 id="password"
+                name="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -131,5 +126,24 @@ export default function AdminLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="relative flex min-h-screen flex-col items-center justify-center bg-[var(--background)] px-4 py-12">
+        <div className="w-full max-w-md animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8">
+          <div className="mb-8 h-14 w-14 rounded-xl bg-[var(--muted)]" />
+          <div className="space-y-5">
+            <div className="h-12 rounded-lg bg-[var(--muted)]" />
+            <div className="h-12 rounded-lg bg-[var(--muted)]" />
+            <div className="h-12 rounded-lg bg-[var(--muted)]" />
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
