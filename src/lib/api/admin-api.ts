@@ -1,6 +1,6 @@
 /**
- * Client-side admin API. All requests go directly to the backend.
- * Token is stored in localStorage.
+ * Client-side helpers. Login must hit `/api/admin/login` so httpOnly cookies
+ * match server-side admin pages (see admin-client). Other helpers are legacy-ready.
  */
 
 const API_BASE =
@@ -145,29 +145,24 @@ export interface FullInsights {
 }
 
 // --- Auth ---
+/** Sets httpOnly cookies via Next.js; required for /admin server layouts and API. */
 export async function login(identifier: string, password: string) {
-  const res = await fetch(`${API_BASE}/admin/auth/login`, {
+  const res = await fetch("/api/admin/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ identifier, password }),
+    credentials: "include",
   });
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  const inner = data?.data as Record<string, unknown> | undefined;
-  const token = (
-    data?.accessToken ??
-    data?.access_token ??
-    data?.token ??
-    inner?.accessToken ??
-    inner?.access_token ??
-    inner?.token
-  ) as string | undefined;
-  if (res.ok && typeof token === "string" && token.trim()) {
-    setToken(token);
-    return { ok: true, token };
+  if (res.ok && data?.success === true) {
+    return { ok: true as const };
   }
   return {
-    ok: false,
-    error: (data?.message as string) ?? "Invalid credentials",
+    ok: false as const,
+    error:
+      (data?.error as string) ??
+      (data?.message as string) ??
+      "Invalid credentials",
   };
 }
 

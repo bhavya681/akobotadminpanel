@@ -20,9 +20,14 @@ import {
   updatePackage as updatePackageApi,
   deletePackage as deletePackageApi,
   walletAction as walletActionApi,
+  createConfig as createConfigApi,
+  updateConfig as updateConfigApi,
+  deleteConfig as deleteConfigApi,
+  getConfigByKey as getConfigByKeyApi,
   type User,
   type CreateModelInput,
   type CreatePackageInput,
+  type CreateConfigInput,
 } from "@/lib/api/admin-client";
 
 export async function createUserAction(formData: FormData) {
@@ -341,6 +346,121 @@ export async function deletePackageAction(id: string) {
 }
 
 // --- Wallet ---
+// --- App configuration ---
+function parseConfigValue(
+  valueType: string,
+  raw: string | null | undefined
+): unknown {
+  const v = raw?.trim() ?? "";
+  if (valueType === "json") {
+    if (!v) return undefined;
+    try {
+      return JSON.parse(v) as unknown;
+    } catch {
+      throw new Error("Invalid JSON for value.");
+    }
+  }
+  if (valueType === "number") {
+    if (!v) return undefined;
+    const n = Number(v);
+    if (Number.isNaN(n)) throw new Error("Value must be a number.");
+    return n;
+  }
+  if (valueType === "boolean") {
+    return v === "true" || v === "1";
+  }
+  return v || undefined;
+}
+
+export async function createConfigAction(formData: FormData) {
+  const key = formData.get("key")?.toString()?.trim();
+  const valueType = formData.get("valueType")?.toString()?.trim() ?? "string";
+  if (!key) {
+    return { ok: false, error: "Key is required." };
+  }
+  const category = formData.get("category")?.toString()?.trim();
+  const description = formData.get("description")?.toString()?.trim();
+  let value: unknown;
+  try {
+    value = parseConfigValue(valueType, formData.get("value")?.toString());
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Invalid value." };
+  }
+  const body: CreateConfigInput = {
+    key,
+    valueType,
+    category: category || undefined,
+    description: description || undefined,
+    ...(value !== undefined ? { value } : {}),
+  };
+  const { ok, data } = await createConfigApi(body);
+  if (ok) {
+    revalidatePath("/admin/configs");
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    error: (data as { message?: string })?.message ?? "Failed to create configuration.",
+  };
+}
+
+export async function updateConfigAction(key: string, formData: FormData) {
+  const valueType = formData.get("valueType")?.toString()?.trim();
+  const category = formData.get("category")?.toString()?.trim();
+  const description = formData.get("description")?.toString()?.trim();
+  const body: Partial<CreateConfigInput> = {};
+  if (category !== undefined) body.category = category || undefined;
+  if (description !== undefined) body.description = description || undefined;
+  if (valueType) body.valueType = valueType;
+  const vt = valueType ?? "string";
+  try {
+    const value = parseConfigValue(vt, formData.get("value")?.toString());
+    if (value !== undefined) body.value = value;
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Invalid value." };
+  }
+  const { ok, data } = await updateConfigApi(key, body);
+  if (ok) {
+    revalidatePath("/admin/configs");
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    error: (data as { message?: string })?.message ?? "Failed to update configuration.",
+  };
+}
+
+export async function deleteConfigAction(key: string) {
+  const { ok, data } = await deleteConfigApi(key);
+  if (ok) {
+    revalidatePath("/admin/configs");
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    error: (data as { message?: string })?.message ?? "Failed to delete configuration.",
+  };
+}
+
+/** GET /api/configs/{key} — response is value or {} (no enumeration leak). */
+export async function lookupConfigByKeyAction(key: string) {
+  const k = key?.trim();
+  if (!k) {
+    return { ok: false as const, error: "Enter a config key." };
+  }
+  const { ok, data } = await getConfigByKeyApi(k);
+  if (!ok) {
+    return {
+      ok: false as const,
+      error: (data as { message?: string })?.message ?? "Lookup failed.",
+    };
+  }
+  return {
+    ok: true as const,
+    preview: JSON.stringify(data, null, 2),
+  };
+}
+
 export async function walletActionAction(formData: FormData) {
   const userId = formData.get("userId")?.toString()?.trim();
   const amountStr = formData.get("amount")?.toString();

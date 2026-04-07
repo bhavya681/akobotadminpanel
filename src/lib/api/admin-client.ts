@@ -488,3 +488,80 @@ export async function getWalletHistory(
     `/api/wallet/admin/history/${userId}${qs ? `?${qs}` : ""}`
   );
 }
+
+// --- App configuration (admin API: /api/configs) ---
+export interface AppConfig {
+  _id?: string;
+  key: string;
+  category?: string;
+  description?: string;
+  valueType?: string;
+  value?: unknown;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface CreateConfigInput {
+  key: string;
+  category?: string;
+  description?: string;
+  valueType: string;
+  value?: unknown;
+}
+
+function normalizeConfigList(data: unknown): AppConfig[] {
+  if (Array.isArray(data)) return data as AppConfig[];
+  if (data && typeof data === "object") {
+    const o = data as Record<string, unknown>;
+    if (Array.isArray(o.configs)) return o.configs as AppConfig[];
+    if (Array.isArray(o.data)) return o.data as AppConfig[];
+    if (Array.isArray(o.items)) return o.items as AppConfig[];
+  }
+  return [];
+}
+
+export async function getAdminConfigs(category?: string) {
+  const qs = category?.trim()
+    ? `?category=${encodeURIComponent(category.trim())}`
+    : "";
+  const res = await fetchAdmin<AppConfig[] | Record<string, unknown> | { message?: string }>(
+    `/api/configs${qs}`
+  );
+  if (res.ok && res.data) {
+    return {
+      ...res,
+      data: normalizeConfigList(res.data),
+    };
+  }
+  return { ...res, data: [] as AppConfig[] };
+}
+
+export async function getConfigByKey(key: string) {
+  const encoded = encodeURIComponent(key);
+  return fetchAdmin<Record<string, unknown> | { message?: string }>(
+    `/api/configs/${encoded}`
+  );
+}
+
+export async function createConfig(body: CreateConfigInput) {
+  return fetchAdmin<AppConfig | { message?: string }>("/api/configs", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateConfig(key: string, body: Partial<CreateConfigInput>) {
+  const encoded = encodeURIComponent(key);
+  return fetchAdmin<AppConfig | { message?: string }>(`/api/configs/${encoded}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteConfig(key: string) {
+  const encoded = encodeURIComponent(key);
+  return fetchAdmin<{ message?: string }>(`/api/configs/${encoded}`, {
+    method: "DELETE",
+  });
+}

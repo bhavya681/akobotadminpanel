@@ -14,11 +14,21 @@ const COOKIE_OPTIONS = {
   path: "/",
 };
 
+const APP_ORIGIN =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.APP_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+
 function getOrigin(request: NextRequest): string {
+  if (APP_ORIGIN) return APP_ORIGIN.replace(/\/$/, "");
+
+  const headerOrigin = request.headers.get("origin");
+  if (headerOrigin) return headerOrigin.replace(/\/$/, "");
+
   try {
     return new URL(request.url).origin;
   } catch {
-    return request.headers.get("origin") ?? "http://localhost:3000";
+    return "http://localhost:3000";
   }
 }
 
