@@ -24,18 +24,6 @@ function UsersIcon({ className }: { className?: string }) {
   );
 }
 
-function KeyIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="7.5" cy="15.5" r="5.5" />
-      <path d="m21 2-2 2" />
-      <path d="m19 6 2 2" />
-      <path d="m15 8-4 4" />
-      <path d="m21 6-4 4" />
-    </svg>
-  );
-}
-
 function CpuIcon({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -91,6 +79,14 @@ function SettingsIcon({ className }: { className?: string }) {
   );
 }
 
+function MessageSquareIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
 const navItems = [
   { href: "/admin", label: "Insights", icon: ChartIcon },
   { href: "/admin/users", label: "Users", icon: UsersIcon },
@@ -99,6 +95,7 @@ const navItems = [
   { href: "/admin/packages", label: "Packages", icon: PackageIcon },
   { href: "/admin/models", label: "Models", icon: CpuIcon },
   { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
+  { href: "/admin/support", label: "Support", icon: MessageSquareIcon },
   { href: "/admin/configs", label: "Configuration", icon: SettingsIcon },
 ];
 

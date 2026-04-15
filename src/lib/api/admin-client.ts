@@ -62,6 +62,38 @@ export interface UsersQuery {
   isBanned?: boolean;
 }
 
+export interface SupportFeedbackItem {
+  _id: string;
+  userId?: string | null;
+  email?: string;
+  username?: string;
+  message: string;
+  origin?: string;
+  referer?: string;
+  userAgent?: string;
+  ipAddress?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface SupportFeedbackPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface SupportFeedbackResponse {
+  items: SupportFeedbackItem[];
+  pagination: SupportFeedbackPagination;
+}
+
+export interface SupportFeedbackQuery {
+  page?: number;
+  limit?: number;
+}
+
 export interface Token {
   tokenId?: string;
   _id?: string;
@@ -111,6 +143,17 @@ export async function getUsers(query: UsersQuery = {}) {
 
 export async function getUserById(id: string) {
   return fetchAdmin<User | { message?: string }>(`/api/admin/users/${id}`);
+}
+
+// --- Support ---
+export async function getSupportFeedback(query: SupportFeedbackQuery = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  return fetchAdmin<SupportFeedbackResponse>(
+    `/api/admin/support/feedback${qs ? `?${qs}` : ""}`
+  );
 }
 
 export async function createUser(body: { username: string; email: string; password: string }) {

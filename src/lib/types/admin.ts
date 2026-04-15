@@ -28,3 +28,35 @@ export interface Token {
   };
   [key: string]: unknown;
 }
+
+export interface SupportFeedbackItem {
+  _id: string;
+  userId?: string | null;
+  email?: string;
+  username?: string;
+  message: string;
+  origin?: string;
+  referer?: string;
+  userAgent?: string;
+  ipAddress?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface SupportFeedbackPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface SupportFeedbackResponse {
+  items: SupportFeedbackItem[];
+  pagination: SupportFeedbackPagination;
+}
+
+export interface SupportFeedbackQuery {
+  page?: number;
+  limit?: number;
+}
