@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Package } from "@/lib/api/admin-client";
+import type { Package, RegistryModel, ToolSummary } from "@/lib/api/admin-client";
 import { updatePackageAction, deletePackageAction } from "@/app/admin/actions";
 import { EditPackageForm } from "./edit-package-form";
 
@@ -53,7 +53,15 @@ function formatPrice(n: number): string {
   }).format(n);
 }
 
-export function PackagesTable({ packages }: { packages: Package[] }) {
+export function PackagesTable({
+  packages,
+  models,
+  toolSummaries,
+}: {
+  packages: Package[];
+  models: RegistryModel[];
+  toolSummaries: ToolSummary[];
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -156,6 +164,15 @@ export function PackagesTable({ packages }: { packages: Package[] }) {
                   Offer
                 </th>
                 <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
+                  Rules
+                </th>
+                <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
+                  Models
+                </th>
+                <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
+                  Tools
+                </th>
+                <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
                   Status
                 </th>
                 <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
@@ -203,6 +220,31 @@ export function PackagesTable({ packages }: { packages: Package[] }) {
                       ) : (
                         "—"
                       )}
+                    </td>
+                    <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
+                      {Array.isArray(pkg.rules) && pkg.rules.length > 0 ? (
+                        <div className="space-y-1">
+                          <p className="text-[var(--foreground)]">{pkg.rules.length} rule{pkg.rules.length === 1 ? "" : "s"}</p>
+                          <p className="max-w-[220px] truncate text-xs">
+                            {pkg.rules
+                              .slice(0, 2)
+                              .map((rule) => `${rule.label}: ${rule.value}`)
+                              .join(" • ")}
+                          </p>
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
+                      {Array.isArray(pkg.allowedModelIds) && pkg.allowedModelIds.length > 0
+                        ? `${pkg.allowedModelIds.length} selected`
+                        : "No restriction"}
+                    </td>
+                    <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
+                      {Array.isArray(pkg.allowedToolNames) && pkg.allowedToolNames.length > 0
+                        ? `${pkg.allowedToolNames.length} selected`
+                        : "No restriction"}
                     </td>
                     <td className="px-4 py-4 sm:px-6">
                       <span
@@ -284,6 +326,8 @@ export function PackagesTable({ packages }: { packages: Package[] }) {
         return (
           <EditPackageForm
             pkg={pkg}
+            models={models}
+            toolSummaries={toolSummaries}
             onClose={handleEditClose}
           />
         );

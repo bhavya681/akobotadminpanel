@@ -101,6 +101,7 @@ export function CreateConfigForm() {
                   <option value="number">number</option>
                   <option value="boolean">boolean</option>
                   <option value="json">json</option>
+                  <option value="array">array</option>
                 </select>
               </div>
               <div>
@@ -110,13 +111,35 @@ export function CreateConfigForm() {
                 <textarea
                   name="value"
                   rows={4}
-                  placeholder='String, number, true/false, or JSON e.g. {"foo":true}'
+                  placeholder={'String, number, true/false, JSON, or array values.\nFor arrays: use a JSON array like ["a", "b"] or one item per line.'}
                   className={inputClass}
                 />
                 <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                   For <strong>json</strong>, paste valid JSON. For <strong>boolean</strong>, use{" "}
-                  <code>true</code> or <code>false</code>.
+                  <code>true</code> or <code>false</code>. For <strong>array</strong>, use a JSON array or enter one item per line.
                 </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
+                  <input
+                    type="checkbox"
+                    name="isSecret"
+                    value="true"
+                    className="rounded border-[var(--border)]"
+                  />
+                  Secret
+                </label>
+                <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    value="true"
+                    defaultChecked
+                    className="rounded border-[var(--border)]"
+                  />
+                  Active
+                </label>
+                <input type="hidden" name="isActive" value="false" />
               </div>
               {error && (
                 <div

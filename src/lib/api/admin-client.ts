@@ -416,9 +416,28 @@ export interface Package {
   offer?: string | null;
   isActive?: boolean;
   sortOrder?: number;
+  rules?: PackageRule[];
+  allowedModelIds?: string[];
+  allowedToolNames?: string[];
   createdAt?: string;
   updatedAt?: string;
   [key: string]: unknown;
+}
+
+export interface PackageRule {
+  key?: string;
+  label: string;
+  value: string;
+  description?: string;
+  resource?: string;
+  limit?: number;
+  window?: string;
+  unit?: string;
+}
+
+export interface ToolSummary {
+  name: string;
+  description: string;
 }
 
 export interface CreatePackageInput {
@@ -430,6 +449,13 @@ export interface CreatePackageInput {
   offer?: string | null;
   isActive?: boolean;
   sortOrder?: number;
+  rules?: PackageRule[];
+  allowedModelIds?: string[];
+  allowedToolNames?: string[];
+}
+
+export async function getToolSummaries() {
+  return fetchAdmin<{ tools?: ToolSummary[]; message?: string }>("/v1/tools/summaries");
 }
 
 export async function getAdminPackages() {
@@ -540,6 +566,9 @@ export interface AppConfig {
   description?: string;
   valueType?: string;
   value?: unknown;
+  isArray?: boolean;
+  isSecret?: boolean;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
   [key: string]: unknown;
@@ -551,6 +580,9 @@ export interface CreateConfigInput {
   description?: string;
   valueType: string;
   value?: unknown;
+  arrayItems?: unknown[];
+  isSecret?: boolean;
+  isActive?: boolean;
 }
 
 function normalizeConfigList(data: unknown): AppConfig[] {

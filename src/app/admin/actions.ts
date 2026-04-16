@@ -28,7 +28,86 @@ import {
   type CreateModelInput,
   type CreatePackageInput,
   type CreateConfigInput,
+  type PackageRule,
 } from "@/lib/api/admin-client";
+
+function parseJsonField<T>(value: FormDataEntryValue | null, fallback: T): T {
+  const raw = value?.toString()?.trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  return JSON.parse(raw) as T;
+}
+
+function parsePackageRules(value: FormDataEntryValue | null): PackageRule[] {
+  const parsed = parseJsonField<PackageRule[]>(value, []);
+  if (!Array.isArray(parsed)) {
+    throw new Error("Rules must be a JSON array.");
+  }
+
+  return parsed
+    .map((rule) => ({
+      key: String(rule?.key ?? "").trim() || undefined,
+      label: String(rule?.label ?? "").trim(),
+      value: String(rule?.value ?? "").trim(),
+      description: String(rule?.description ?? "").trim() || undefined,
+      resource: String(rule?.resource ?? "").trim() || undefined,
+      limit:
+        rule?.limit === undefined || rule?.limit === null || String(rule.limit).trim() === ""
+          ? undefined
+          : Number(rule.limit),
+      window: String(rule?.window ?? "").trim() || undefined,
+      unit: String(rule?.unit ?? "").trim() || undefined,
+    }))
+    .filter((rule) => rule.label && rule.value);
+}
+
+function parseAllowedModelIds(value: FormDataEntryValue | null): string[] {
+  const parsed = parseJsonField<string[]>(value, []);
+  if (!Array.isArray(parsed)) {
+    throw new Error("Allowed models must be a JSON array.");
+  }
+
+  return [...new Set(parsed.map((item) => String(item).trim()).filter(Boolean))];
+}
+
+function parseAllowedToolNames(value: FormDataEntryValue | null): string[] {
+  const parsed = parseJsonField<string[]>(value, []);
+  if (!Array.isArray(parsed)) {
+    throw new Error("Allowed tools must be a JSON array.");
+  }
+
+  return [...new Set(parsed.map((item) => String(item).trim()).filter(Boolean))];
+}
+
+function parseConfigArrayValue(raw: string | null | undefined): unknown[] {
+  const input = raw?.trim() ?? "";
+  if (!input) {
+    throw new Error("Array items are required.");
+  }
+
+  try {
+    const parsed = JSON.parse(input) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Fall back to line-by-line parsing below.
+  }
+
+  return input
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line) as unknown;
+      } catch {
+        return line;
+      }
+    });
+}
 
 export async function createUserAction(formData: FormData) {
   const username = formData.get("username")?.toString()?.trim();
@@ -278,6 +357,20 @@ export async function createPackageAction(formData: FormData) {
   if (!name || !includedCredits || !actualPrice || !currentPrice) {
     return { ok: false, error: "Name, credits, actual price, and current price are required." };
   }
+  let rules: PackageRule[] = [];
+  let allowedModelIds: string[] = [];
+  let allowedToolNames: string[] = [];
+  try {
+    rules = parsePackageRules(formData.get("rulesJson"));
+    allowedModelIds = parseAllowedModelIds(formData.get("allowedModelIdsJson"));
+    allowedToolNames = parseAllowedToolNames(formData.get("allowedToolNamesJson"));
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Invalid package metadata.",
+    };
+  }
+
   const body: CreatePackageInput = {
     name,
     includedCredits: parseInt(includedCredits, 10),
@@ -289,6 +382,9 @@ export async function createPackageAction(formData: FormData) {
     sortOrder: formData.get("sortOrder")
       ? parseInt(String(formData.get("sortOrder")), 10)
       : undefined,
+    rules,
+    allowedModelIds,
+    allowedToolNames,
   };
   const { ok, data } = await createPackageApi(body);
   if (ok && data && !("message" in data)) {
@@ -322,6 +418,17 @@ export async function updatePackageAction(id: string, formData: FormData) {
   if (sortOrder !== undefined)
     body.sortOrder = sortOrder ? parseInt(sortOrder, 10) : undefined;
 
+  try {
+    body.rules = parsePackageRules(formData.get("rulesJson"));
+    body.allowedModelIds = parseAllowedModelIds(formData.get("allowedModelIdsJson"));
+    body.allowedToolNames = parseAllowedToolNames(formData.get("allowedToolNamesJson"));
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Invalid package metadata.",
+    };
+  }
+
   const { ok, data } = await updatePackageApi(id, body);
   if (ok && data && !("message" in data)) {
     revalidatePath("/admin/packages");
@@ -352,6 +459,9 @@ function parseConfigValue(
   raw: string | null | undefined
 ): unknown {
   const v = raw?.trim() ?? "";
+  if (valueType === "array") {
+    return parseConfigArrayValue(raw);
+  }
   if (valueType === "json") {
     if (!v) return undefined;
     try {
@@ -391,7 +501,13 @@ export async function createConfigAction(formData: FormData) {
     valueType,
     category: category || undefined,
     description: description || undefined,
-    ...(value !== undefined ? { value } : {}),
+    isSecret: formData.get("isSecret") === "true",
+    isActive: formData.get("isActive") !== "false",
+    ...(valueType === "array"
+      ? { arrayItems: Array.isArray(value) ? value : [] }
+      : value !== undefined
+        ? { value }
+        : {}),
   };
   const { ok, data } = await createConfigApi(body);
   if (ok) {
@@ -412,10 +528,19 @@ export async function updateConfigAction(key: string, formData: FormData) {
   if (category !== undefined) body.category = category || undefined;
   if (description !== undefined) body.description = description || undefined;
   if (valueType) body.valueType = valueType;
+  const isSecret = formData.get("isSecret");
+  if (isSecret !== null && isSecret !== undefined) body.isSecret = isSecret === "true";
+  const isActive = formData.get("isActive");
+  if (isActive !== null && isActive !== undefined) body.isActive = isActive === "true";
   const vt = valueType ?? "string";
   try {
     const value = parseConfigValue(vt, formData.get("value")?.toString());
-    if (value !== undefined) body.value = value;
+    if (vt === "array") {
+      body.arrayItems = Array.isArray(value) ? value : [];
+      body.value = null;
+    } else if (value !== undefined) {
+      body.value = value;
+    }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Invalid value." };
   }

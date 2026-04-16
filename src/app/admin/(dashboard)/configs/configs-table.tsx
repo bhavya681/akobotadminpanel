@@ -108,10 +108,10 @@ export function ConfigsTable({ configs }: { configs: AppConfig[] }) {
                   {row.category ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-[var(--muted-foreground)]">
-                  {row.valueType ?? "—"}
+                  {row.valueType ?? (Array.isArray(row.value) ? "array" : "—")}
                 </td>
                 <td className="max-w-xs truncate px-4 py-3 font-mono text-xs text-[var(--foreground)]">
-                  {formatValue(row.value)}
+                  {row.isSecret ? "••••••••" : formatValue(row.value)}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-2">
@@ -179,13 +179,14 @@ export function ConfigsTable({ configs }: { configs: AppConfig[] }) {
                 <select
                   name="valueType"
                   required
-                  defaultValue={editing.valueType ?? "string"}
+                  defaultValue={editing.valueType ?? (Array.isArray(editing.value) ? "array" : "string")}
                   className={inputClass}
                 >
                   <option value="string">string</option>
                   <option value="number">number</option>
                   <option value="boolean">boolean</option>
                   <option value="json">json</option>
+                  <option value="array">array</option>
                 </select>
               </div>
               <div>
@@ -196,6 +197,32 @@ export function ConfigsTable({ configs }: { configs: AppConfig[] }) {
                   defaultValue={valueToInputString(editing.value, editing.valueType)}
                   className={inputClass}
                 />
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  For arrays, paste a JSON array or one item per line.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
+                  <input
+                    type="checkbox"
+                    name="isSecret"
+                    value="true"
+                    defaultChecked={editing.isSecret === true}
+                    className="rounded border-[var(--border)]"
+                  />
+                  Secret
+                </label>
+                <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    value="true"
+                    defaultChecked={editing.isActive !== false}
+                    className="rounded border-[var(--border)]"
+                  />
+                  Active
+                </label>
+                <input type="hidden" name="isActive" value="false" />
               </div>
               {error && (
                 <div
