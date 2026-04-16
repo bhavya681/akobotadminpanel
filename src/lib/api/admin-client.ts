@@ -195,6 +195,16 @@ export async function makeUserAdmin(userId: string) {
   });
 }
 
+export async function unlinkUserOAuth(email: string, password: string) {
+  return fetchAdmin<{ message?: string }>("/api/admin/users/unlink-oauth", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      password,
+    }),
+  });
+}
+
 // --- Tokens ---
 export async function getTokens() {
   return fetchAdmin<TokensResponse | Token[] | { message?: string }>("/api/admin/tokens");

@@ -9,6 +9,7 @@ import {
   unbanUser as unbanUserApi,
   resetUserPassword as resetUserPasswordApi,
   makeUserAdmin as makeUserAdminApi,
+  unlinkUserOAuth as unlinkUserOAuthApi,
   revokeToken as revokeTokenApi,
   createModel as createModelApi,
   updateModel as updateModelApi,
@@ -215,6 +216,27 @@ export async function makeUserAdminAction(userId: string) {
   return {
     ok: false,
     error: (data as { message?: string })?.message ?? "Failed to make admin.",
+  };
+}
+
+function generateAutoPassword() {
+  return `Auto#${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}aA1`;
+}
+
+export async function unlinkUserOAuthAction(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return { ok: false, error: "Email is required." };
+  }
+  const generatedPassword = generateAutoPassword();
+  const { ok, data } = await unlinkUserOAuthApi(normalizedEmail, generatedPassword);
+  if (ok) {
+    revalidatePath("/admin/users");
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    error: (data as { message?: string })?.message ?? "Failed to unlink Google account.",
   };
 }
 

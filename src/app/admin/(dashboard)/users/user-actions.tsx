@@ -10,6 +10,7 @@ import {
   deleteUserAction,
   resetUserPasswordAction,
   makeUserAdminAction,
+  unlinkUserOAuthAction,
 } from "@/app/admin/actions";
 
 function MoreVerticalIcon({ className }: { className?: string }) {
@@ -46,6 +47,15 @@ function KeyIcon({ className }: { className?: string }) {
       <path d="m19 6 2 2" />
       <path d="m15 8-4 4" />
       <path d="m21 6-4 4" />
+    </svg>
+  );
+}
+
+function LinkBreakIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
     </svg>
   );
 }
@@ -126,6 +136,10 @@ export function UserActions({ user }: { user: User }) {
     }
   };
 
+  const handleUnlinkGoogleClick = () => {
+    handleAction(() => unlinkUserOAuthAction(user.email), "unlink-google");
+  };
+
   const isBusy = !!loading;
 
   return (
@@ -199,6 +213,16 @@ export function UserActions({ user }: { user: User }) {
           >
             <KeyIcon />
             Reset password
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={handleUnlinkGoogleClick}
+            disabled={isBusy}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <LinkBreakIcon />
+            {loading === "unlink-google" ? "Unlinking..." : "Unlink Google"}
           </button>
           <button
             type="button"
