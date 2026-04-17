@@ -189,7 +189,7 @@ export function EditPackageForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
-                Actual price (₹) *
+                Actual price ($) *
               </label>
               <input
                 name="actualPrice"
@@ -203,7 +203,7 @@ export function EditPackageForm({
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
-                Current price (₹) *
+                Current price ($) *
               </label>
               <input
                 name="currentPrice"
@@ -224,7 +224,7 @@ export function EditPackageForm({
               name="description"
               rows={2}
               defaultValue={initialPackage.description ?? ""}
-              placeholder="Get 60,000 credits for just ₹200!"
+              placeholder="Get 60,000 credits for just $200!"
               className={inputClass}
             />
           </div>
