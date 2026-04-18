@@ -55,8 +55,9 @@ export default async function PackagesPage() {
           <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
             Packages
           </h1>
-          <p className="mt-2 text-[var(--muted-foreground)]">
+          <p className="mt-2 max-w-2xl text-[var(--muted-foreground)]">
             Manage pricing plans, custom rule rows, and which registry models each package can access.
+            Package prices are always stored in the package currency (INR or USD). The admin panel does not convert currencies; Razorpay checkout conversion from USD to INR is handled by the backend.
           </p>
         </div>
         <CreatePackageForm models={models} toolSummaries={toolSummaries} />

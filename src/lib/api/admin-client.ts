@@ -416,12 +416,18 @@ export async function deleteGalleryItem(id: string) {
 }
 
 // --- Packages ---
+import type { PackageCurrency } from "@/lib/package-currency";
+
+export type { PackageCurrency };
+export { normalizePackageCurrency, formatPackageMoney } from "@/lib/package-currency";
+
 export interface Package {
   _id: string;
   name: string;
   includedCredits: number;
   actualPrice: number;
   currentPrice: number;
+  currency?: PackageCurrency;
   description?: string;
   offer?: string | null;
   isActive?: boolean;
@@ -455,6 +461,7 @@ export interface CreatePackageInput {
   includedCredits: number;
   actualPrice: number;
   currentPrice: number;
+  currency?: PackageCurrency;
   description?: string;
   offer?: string | null;
   isActive?: boolean;
@@ -493,6 +500,7 @@ export async function updatePackage(id: string, body: Partial<CreatePackageInput
 export async function deletePackage(id: string) {
   return fetchAdmin<{ message?: string }>(`/api/packages/${id}`, {
     method: "DELETE",
+    body: "{}",
   });
 }
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Package, PackageRule, RegistryModel, ToolSummary } from "@/lib/api/admin-client";
+import { normalizePackageCurrency } from "@/lib/package-currency";
 import { updatePackageAction } from "@/app/admin/actions";
 
 const QUOTA_RESOURCES = [
@@ -186,10 +187,26 @@ export function EditPackageForm({
               />
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+              Package currency *
+            </label>
+            <select
+              name="currency"
+              className={inputClass}
+              defaultValue={normalizePackageCurrency(initialPackage.currency)}
+            >
+              <option value="INR">INR</option>
+              <option value="USD">USD</option>
+            </select>
+            <p className="text-xs text-[var(--muted-foreground)] mt-1.5 leading-relaxed">
+              Prices below are in this currency. USD plans may show in dollars on the public site; Razorpay uses backend conversion to INR—do not convert here.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
-                Actual price ($) *
+                Actual price (in package currency) *
               </label>
               <input
                 name="actualPrice"
@@ -203,7 +220,7 @@ export function EditPackageForm({
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
-                Current price ($) *
+                Current price (in package currency) *
               </label>
               <input
                 name="currentPrice"

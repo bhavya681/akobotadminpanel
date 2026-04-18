@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Package, RegistryModel, ToolSummary } from "@/lib/api/admin-client";
+import { formatPackageMoney, normalizePackageCurrency } from "@/lib/package-currency";
 import { updatePackageAction, deletePackageAction } from "@/app/admin/actions";
 import { EditPackageForm } from "./edit-package-form";
 
@@ -43,14 +44,6 @@ function TrashIcon({ className }: { className?: string }) {
       <line x1="14" x2="14" y1="11" y2="17" />
     </svg>
   );
-}
-
-function formatPrice(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(n);
 }
 
 export function PackagesTable({
@@ -158,7 +151,7 @@ export function PackagesTable({
                   Credits
                 </th>
                 <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
-                  Price
+                  Price (INR / USD)
                 </th>
                 <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
                   Offer
@@ -184,6 +177,7 @@ export function PackagesTable({
               {sorted.map((pkg) => {
                 const id = pkg._id ?? "";
                 const isBusy = loading === id;
+                const currency = normalizePackageCurrency(pkg.currency);
                 return (
                   <tr
                     key={id}
@@ -205,12 +199,25 @@ export function PackagesTable({
                       {pkg.includedCredits?.toLocaleString() ?? "—"}
                     </td>
                     <td className="px-4 py-4 sm:px-6">
-                      <span className="text-[var(--muted-foreground)] line-through">
-                        {formatPrice(pkg.actualPrice ?? 0)}
-                      </span>
-                      <span className="ml-2 font-medium text-[var(--foreground)]">
-                        {formatPrice(pkg.currentPrice ?? 0)}
-                      </span>
+                      <div className="flex flex-col gap-1.5">
+                        <span
+                          className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                            currency === "USD"
+                              ? "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
+                              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                          }`}
+                        >
+                          {currency}
+                        </span>
+                        <div className="text-sm">
+                          <span className="text-[var(--muted-foreground)] line-through">
+                            {formatPackageMoney(pkg.actualPrice ?? 0, currency)}
+                          </span>
+                          <span className="ml-2 font-medium text-[var(--foreground)]">
+                            {formatPackageMoney(pkg.currentPrice ?? 0, currency)}
+                          </span>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
                       {pkg.offer ? (

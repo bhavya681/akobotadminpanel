@@ -393,11 +393,15 @@ export async function createPackageAction(formData: FormData) {
     };
   }
 
+  const currencyRaw = formData.get("currency")?.toString();
+  const currency = currencyRaw === "USD" ? "USD" : "INR";
+
   const body: CreatePackageInput = {
     name,
     includedCredits: parseInt(includedCredits, 10),
     actualPrice: parseInt(actualPrice, 10),
     currentPrice: parseInt(currentPrice, 10),
+    currency,
     description: formData.get("description")?.toString()?.trim() || undefined,
     offer: formData.get("offer")?.toString()?.trim() || null,
     isActive: formData.get("isActive") !== "false",
@@ -429,6 +433,8 @@ export async function updatePackageAction(id: string, formData: FormData) {
   if (actualPrice) body.actualPrice = parseInt(actualPrice, 10);
   const currentPrice = formData.get("currentPrice")?.toString();
   if (currentPrice) body.currentPrice = parseInt(currentPrice, 10);
+  const currencyRaw = formData.get("currency")?.toString();
+  if (currencyRaw === "INR" || currencyRaw === "USD") body.currency = currencyRaw;
   const description = formData.get("description")?.toString()?.trim();
   if (description !== undefined) body.description = description || undefined;
   const offer = formData.get("offer")?.toString()?.trim();

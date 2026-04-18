@@ -187,10 +187,22 @@ export function CreatePackageForm({
                   />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+                  Package currency *
+                </label>
+                <select name="currency" className={inputClass} defaultValue="INR">
+                  <option value="INR">INR</option>
+                  <option value="USD">USD</option>
+                </select>
+                <p className="text-xs text-[var(--muted-foreground)] mt-1.5 leading-relaxed">
+                  Actual and current prices are entered in this currency. If you choose USD, the public site may show the plan in dollars. For Razorpay checkout, the backend converts USD-priced packages to INR using a live rate—do not convert amounts here.
+                </p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
-                    Actual price ($) *
+                    Actual price (in package currency) *
                   </label>
                   <input
                     name="actualPrice"
@@ -203,7 +215,7 @@ export function CreatePackageForm({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
-                    Current price ($) *
+                    Current price (in package currency) *
                   </label>
                   <input
                     name="currentPrice"
