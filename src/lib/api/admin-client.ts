@@ -454,6 +454,7 @@ export interface PackageRule {
 export interface ToolSummary {
   name: string;
   description: string;
+  category?: string;
 }
 
 export interface CreatePackageInput {

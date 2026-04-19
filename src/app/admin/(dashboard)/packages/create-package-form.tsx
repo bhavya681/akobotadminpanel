@@ -55,6 +55,11 @@ export function CreatePackageForm({
   const [rules, setRules] = useState<PackageRule[]>([]);
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [selectedToolNames, setSelectedToolNames] = useState<string[]>([]);
+  const [allTools, setAllTools] = useState(true);
+
+  const PLUGIN_CATEGORIES = new Set(["messaging"]);
+  const tools = toolSummaries.filter((t) => !PLUGIN_CATEGORIES.has(t.category ?? "general"));
+  const plugins = toolSummaries.filter((t) => PLUGIN_CATEGORIES.has(t.category ?? "general"));
 
   const groupedModels = groupModels(models);
 
@@ -74,6 +79,7 @@ export function CreatePackageForm({
         setRules([]);
         setSelectedModelIds([]);
         setSelectedToolNames([]);
+        setAllTools(true);
         router.refresh();
       } else {
         setError(result.error ?? "Failed to create package.");
@@ -147,7 +153,7 @@ export function CreatePackageForm({
               <input
                 type="hidden"
                 name="allowedToolNamesJson"
-                value={JSON.stringify(selectedToolNames)}
+                value={JSON.stringify(allTools ? [] : selectedToolNames)}
               />
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
@@ -367,45 +373,101 @@ export function CreatePackageForm({
               </div>
 
               <div className="rounded-xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
-                <div className="mb-3">
-                  <h4 className="text-sm font-semibold text-[var(--foreground)]">
-                    Allowed tools
-                  </h4>
-                  <p className="text-xs text-[var(--muted-foreground)]">
-                    Restrict this package to specific AI tools, or leave empty for no tool restriction.
-                  </p>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-semibold text-[var(--foreground)]">
+                      Allowed tools &amp; plugins
+                    </h4>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      Toggle &quot;All&quot; to grant access to every tool and plugin, or turn it off to pick individually.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                    <span className="text-xs font-medium text-[var(--foreground)]">All</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={allTools}
+                      onClick={() => setAllTools((v) => !v)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors ${allTools ? "bg-[var(--primary)]" : "bg-[var(--muted)]"}`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${allTools ? "translate-x-5" : "translate-x-1"}`} />
+                    </button>
+                  </label>
                 </div>
 
                 {toolSummaries.length === 0 ? (
                   <p className="text-sm text-[var(--muted-foreground)]">No tool summaries available.</p>
                 ) : (
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {toolSummaries.map((tool) => {
-                      const checked = selectedToolNames.includes(tool.name);
-                      return (
-                        <label
-                          key={tool.name}
-                          className="flex cursor-pointer items-start gap-3 rounded-lg border border-[var(--border)] p-3 hover:bg-[var(--muted)]/40"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() =>
-                              setSelectedToolNames((current) =>
-                                current.includes(tool.name)
-                                  ? current.filter((value) => value !== tool.name)
-                                  : [...current, tool.name]
-                              )
-                            }
-                            className="mt-1 rounded border-[var(--border)]"
-                          />
-                          <span className="min-w-0">
-                            <span className="block text-sm font-medium text-[var(--foreground)]">{tool.name}</span>
-                            <span className="block text-xs text-[var(--muted-foreground)]">{tool.description}</span>
-                          </span>
-                        </label>
-                      );
-                    })}
+                  <div className="space-y-4">
+                    {tools.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted-foreground)]">Tools</p>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          {tools.map((tool) => {
+                            const checked = allTools || selectedToolNames.includes(tool.name);
+                            return (
+                              <label
+                                key={tool.name}
+                                className={`flex items-start gap-3 rounded-lg border border-[var(--border)] p-3 ${allTools ? "opacity-60 cursor-default" : "cursor-pointer hover:bg-[var(--muted)]/40"}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={allTools}
+                                  onChange={() =>
+                                    setSelectedToolNames((current) =>
+                                      current.includes(tool.name)
+                                        ? current.filter((v) => v !== tool.name)
+                                        : [...current, tool.name]
+                                    )
+                                  }
+                                  className="mt-1 rounded border-[var(--border)]"
+                                />
+                                <span className="min-w-0">
+                                  <span className="block text-sm font-medium text-[var(--foreground)]">{tool.name}</span>
+                                  <span className="block text-xs text-[var(--muted-foreground)]">{tool.description}</span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {plugins.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted-foreground)]">Plugins</p>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          {plugins.map((tool) => {
+                            const checked = allTools || selectedToolNames.includes(tool.name);
+                            return (
+                              <label
+                                key={tool.name}
+                                className={`flex items-start gap-3 rounded-lg border border-[var(--border)] p-3 ${allTools ? "opacity-60 cursor-default" : "cursor-pointer hover:bg-[var(--muted)]/40"}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={allTools}
+                                  onChange={() =>
+                                    setSelectedToolNames((current) =>
+                                      current.includes(tool.name)
+                                        ? current.filter((v) => v !== tool.name)
+                                        : [...current, tool.name]
+                                    )
+                                  }
+                                  className="mt-1 rounded border-[var(--border)]"
+                                />
+                                <span className="min-w-0">
+                                  <span className="block text-sm font-medium text-[var(--foreground)]">{tool.name}</span>
+                                  <span className="block text-xs text-[var(--muted-foreground)]">{tool.description}</span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
