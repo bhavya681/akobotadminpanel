@@ -424,6 +424,8 @@ export { normalizePackageCurrency, formatPackageMoney } from "@/lib/package-curr
 export interface Package {
   _id: string;
   name: string;
+  planType?: "credits" | "quota";
+  isFreeDefault?: boolean;
   includedCredits: number;
   actualPrice: number;
   currentPrice: number;
@@ -459,9 +461,11 @@ export interface ToolSummary {
 
 export interface CreatePackageInput {
   name: string;
-  includedCredits: number;
-  actualPrice: number;
-  currentPrice: number;
+  planType?: "credits" | "quota";
+  isFreeDefault?: boolean;
+  includedCredits?: number;
+  actualPrice?: number;
+  currentPrice?: number;
   currency?: PackageCurrency;
   description?: string;
   offer?: string | null;

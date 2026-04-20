@@ -373,11 +373,16 @@ export async function deleteGalleryItemAction(id: string) {
 // --- Packages ---
 export async function createPackageAction(formData: FormData) {
   const name = formData.get("name")?.toString()?.trim();
+  const planType = formData.get("planType")?.toString()?.trim() || "credits";
+  const isQuotaPlan = planType === "quota";
   const includedCredits = formData.get("includedCredits")?.toString();
   const actualPrice = formData.get("actualPrice")?.toString();
   const currentPrice = formData.get("currentPrice")?.toString();
-  if (!name || !includedCredits || !actualPrice || !currentPrice) {
-    return { ok: false, error: "Name, credits, actual price, and current price are required." };
+  if (!name) {
+    return { ok: false, error: "Name is required." };
+  }
+  if (!isQuotaPlan && (!includedCredits || !actualPrice || !currentPrice)) {
+    return { ok: false, error: "Credits, actual price, and current price are required for credit-based plans." };
   }
   let rules: PackageRule[] = [];
   let allowedModelIds: string[] = [];
@@ -398,9 +403,11 @@ export async function createPackageAction(formData: FormData) {
 
   const body: CreatePackageInput = {
     name,
-    includedCredits: parseInt(includedCredits, 10),
-    actualPrice: parseInt(actualPrice, 10),
-    currentPrice: parseInt(currentPrice, 10),
+    planType: planType as "credits" | "quota",
+    isFreeDefault: formData.get("isFreeDefault") === "true",
+    includedCredits: includedCredits ? parseInt(includedCredits, 10) : 0,
+    actualPrice: actualPrice ? parseInt(actualPrice, 10) : 0,
+    currentPrice: currentPrice ? parseInt(currentPrice, 10) : 0,
     currency,
     description: formData.get("description")?.toString()?.trim() || undefined,
     offer: formData.get("offer")?.toString()?.trim() || null,
@@ -427,12 +434,17 @@ export async function updatePackageAction(id: string, formData: FormData) {
   const body: Partial<CreatePackageInput> = {};
   const name = formData.get("name")?.toString()?.trim();
   if (name) body.name = name;
+  const planType = formData.get("planType")?.toString()?.trim();
+  if (planType === "credits" || planType === "quota") body.planType = planType;
+  const isFreeDefault = formData.get("isFreeDefault");
+  if (isFreeDefault !== null && isFreeDefault !== undefined)
+    body.isFreeDefault = isFreeDefault === "true";
   const includedCredits = formData.get("includedCredits")?.toString();
-  if (includedCredits) body.includedCredits = parseInt(includedCredits, 10);
+  if (includedCredits !== undefined && includedCredits !== null) body.includedCredits = includedCredits ? parseInt(includedCredits, 10) : 0;
   const actualPrice = formData.get("actualPrice")?.toString();
-  if (actualPrice) body.actualPrice = parseInt(actualPrice, 10);
+  if (actualPrice !== undefined && actualPrice !== null) body.actualPrice = actualPrice ? parseInt(actualPrice, 10) : 0;
   const currentPrice = formData.get("currentPrice")?.toString();
-  if (currentPrice) body.currentPrice = parseInt(currentPrice, 10);
+  if (currentPrice !== undefined && currentPrice !== null) body.currentPrice = currentPrice ? parseInt(currentPrice, 10) : 0;
   const currencyRaw = formData.get("currency")?.toString();
   if (currencyRaw === "INR" || currencyRaw === "USD") body.currency = currencyRaw;
   const description = formData.get("description")?.toString()?.trim();

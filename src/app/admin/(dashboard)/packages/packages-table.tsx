@@ -148,6 +148,9 @@ export function PackagesTable({
                   Package
                 </th>
                 <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
+                  Type
+                </th>
+                <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
                   Credits
                 </th>
                 <th className="px-6 py-4 text-left font-medium text-[var(--muted-foreground)]">
@@ -192,6 +195,24 @@ export function PackagesTable({
                           <p className="text-xs text-[var(--muted-foreground)] mt-0.5 line-clamp-1">
                             {pkg.description}
                           </p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 sm:px-6">
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                            pkg.planType === "quota"
+                              ? "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                          }`}
+                        >
+                          {pkg.planType ?? "credits"}
+                        </span>
+                        {pkg.isFreeDefault && (
+                          <span className="inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                            Free default
+                          </span>
                         )}
                       </div>
                     </td>

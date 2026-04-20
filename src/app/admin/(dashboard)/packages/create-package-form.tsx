@@ -56,6 +56,10 @@ export function CreatePackageForm({
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [selectedToolNames, setSelectedToolNames] = useState<string[]>([]);
   const [allTools, setAllTools] = useState(true);
+  const [planType, setPlanType] = useState<"credits" | "quota">("credits");
+  const [isFreeDefault, setIsFreeDefault] = useState(false);
+  const [planType, setPlanType] = useState<"credits" | "quota">("credits");
+  const [isFreeDefault, setIsFreeDefault] = useState(false);
 
   const PLUGIN_CATEGORIES = new Set(["messaging"]);
   const tools = toolSummaries.filter((t) => !PLUGIN_CATEGORIES.has(t.category ?? "general"));
@@ -80,6 +84,8 @@ export function CreatePackageForm({
         setSelectedModelIds([]);
         setSelectedToolNames([]);
         setAllTools(true);
+        setPlanType("credits");
+        setIsFreeDefault(false);
         router.refresh();
       } else {
         setError(result.error ?? "Failed to create package.");
@@ -138,7 +144,7 @@ export function CreatePackageForm({
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-semibold text-[var(--foreground)] mb-1">
-              Add credit package
+              Add package
             </h3>
             <p className="text-sm text-[var(--muted-foreground)] mb-6">
               Create a new package for the pricing page
@@ -155,6 +161,38 @@ export function CreatePackageForm({
                 name="allowedToolNamesJson"
                 value={JSON.stringify(allTools ? [] : selectedToolNames)}
               />
+              <input type="hidden" name="planType" value={planType} />
+              <input type="hidden" name="isFreeDefault" value={String(isFreeDefault)} />
+
+              {/* Plan type selector */}
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
+                <h4 className="text-sm font-semibold text-[var(--foreground)] mb-2">Plan type</h4>
+                <div className="flex gap-3">
+                  <label className={`flex-1 flex items-center gap-2 rounded-lg border p-3 cursor-pointer ${planType === "credits" ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-[var(--border)]"}`}>
+                    <input type="radio" checked={planType === "credits"} onChange={() => setPlanType("credits")} className="accent-[var(--primary)]" />
+                    <div>
+                      <span className="block text-sm font-medium text-[var(--foreground)]">Credits</span>
+                      <span className="block text-xs text-[var(--muted-foreground)]">Wallet-based, pay per use</span>
+                    </div>
+                  </label>
+                  <label className={`flex-1 flex items-center gap-2 rounded-lg border p-3 cursor-pointer ${planType === "quota" ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-[var(--border)]"}`}>
+                    <input type="radio" checked={planType === "quota"} onChange={() => setPlanType("quota")} className="accent-[var(--primary)]" />
+                    <div>
+                      <span className="block text-sm font-medium text-[var(--foreground)]">Quota</span>
+                      <span className="block text-xs text-[var(--muted-foreground)]">Hard-cap limits per resource</span>
+                    </div>
+                  </label>
+                </div>
+                <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isFreeDefault}
+                    onChange={(e) => setIsFreeDefault(e.target.checked)}
+                    className="rounded border-[var(--border)]"
+                  />
+                  <span className="text-sm text-[var(--foreground)]">Default free plan (assigned on signup)</span>
+                </label>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
                   Name *
@@ -167,19 +205,21 @@ export function CreatePackageForm({
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
+                {planType === "credits" && (
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
-                    Included credits *
+                    Included credits {planType === "credits" ? "*" : ""}
                   </label>
                   <input
                     name="includedCredits"
                     type="number"
-                    required
-                    min="1"
+                    required={planType === "credits"}
+                    min="0"
                     placeholder="60000"
                     className={inputClass}
                   />
                 </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
                     Sort order
@@ -193,6 +233,7 @@ export function CreatePackageForm({
                   />
                 </div>
               </div>
+              {planType === "credits" && (
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
                   Package currency *
@@ -205,6 +246,8 @@ export function CreatePackageForm({
                   Actual and current prices are entered in this currency. If you choose USD, the public site may show the plan in dollars. For Razorpay checkout, the backend converts USD-priced packages to INR using a live rate—do not convert amounts here.
                 </p>
               </div>
+              )}
+              {planType === "credits" && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
@@ -233,6 +276,7 @@ export function CreatePackageForm({
                   />
                 </div>
               </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
                   Description

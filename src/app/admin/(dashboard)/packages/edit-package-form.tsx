@@ -64,6 +64,8 @@ export function EditPackageForm({
   const [allTools, setAllTools] = useState(
     !Array.isArray(initialPackage.allowedToolNames) || initialPackage.allowedToolNames.length === 0
   );
+  const [planType, setPlanType] = useState<"credits" | "quota">(initialPackage.planType ?? "credits");
+  const [isFreeDefault, setIsFreeDefault] = useState(initialPackage.isFreeDefault ?? false);
 
   const PLUGIN_CATEGORIES = new Set(["messaging"]);
   const tools = toolSummaries.filter((t) => !PLUGIN_CATEGORIES.has(t.category ?? "general"));
@@ -153,6 +155,38 @@ export function EditPackageForm({
             name="allowedToolNamesJson"
             value={JSON.stringify(allTools ? [] : selectedToolNames)}
           />
+          <input type="hidden" name="planType" value={planType} />
+          <input type="hidden" name="isFreeDefault" value={String(isFreeDefault)} />
+
+          {/* Plan type selector */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
+            <h4 className="text-sm font-semibold text-[var(--foreground)] mb-2">Plan type</h4>
+            <div className="flex gap-3">
+              <label className={`flex-1 flex items-center gap-2 rounded-lg border p-3 cursor-pointer ${planType === "credits" ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-[var(--border)]"}`}>
+                <input type="radio" checked={planType === "credits"} onChange={() => setPlanType("credits")} className="accent-[var(--primary)]" />
+                <div>
+                  <span className="block text-sm font-medium text-[var(--foreground)]">Credits</span>
+                  <span className="block text-xs text-[var(--muted-foreground)]">Wallet-based, pay per use</span>
+                </div>
+              </label>
+              <label className={`flex-1 flex items-center gap-2 rounded-lg border p-3 cursor-pointer ${planType === "quota" ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-[var(--border)]"}`}>
+                <input type="radio" checked={planType === "quota"} onChange={() => setPlanType("quota")} className="accent-[var(--primary)]" />
+                <div>
+                  <span className="block text-sm font-medium text-[var(--foreground)]">Quota</span>
+                  <span className="block text-xs text-[var(--muted-foreground)]">Hard-cap limits per resource</span>
+                </div>
+              </label>
+            </div>
+            <label className="flex items-center gap-2 mt-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isFreeDefault}
+                onChange={(e) => setIsFreeDefault(e.target.checked)}
+                className="rounded border-[var(--border)]"
+              />
+              <span className="text-sm text-[var(--foreground)]">Default free plan (assigned on signup)</span>
+            </label>
+          </div>
           <div>
             <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
               Name *
@@ -166,20 +200,22 @@ export function EditPackageForm({
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
+            {planType === "credits" && (
             <div>
               <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
-                Included credits *
+                Included credits {planType === "credits" ? "*" : ""}
               </label>
               <input
                 name="includedCredits"
                 type="number"
-                required
-                min="1"
+                required={planType === "credits"}
+                min="0"
                 defaultValue={initialPackage.includedCredits}
                 placeholder="60000"
                 className={inputClass}
               />
             </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
                 Sort order
@@ -194,6 +230,7 @@ export function EditPackageForm({
               />
             </div>
           </div>
+          {planType === "credits" && (
           <div>
             <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
               Package currency *
@@ -210,6 +247,8 @@ export function EditPackageForm({
               Prices below are in this currency. USD plans may show in dollars on the public site; Razorpay uses backend conversion to INR—do not convert here.
             </p>
           </div>
+          )}
+          {planType === "credits" && (
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
@@ -240,6 +279,7 @@ export function EditPackageForm({
               />
             </div>
           </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
               Description
