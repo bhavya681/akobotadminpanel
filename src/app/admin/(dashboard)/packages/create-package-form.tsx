@@ -58,8 +58,6 @@ export function CreatePackageForm({
   const [allTools, setAllTools] = useState(true);
   const [planType, setPlanType] = useState<"credits" | "quota">("credits");
   const [isFreeDefault, setIsFreeDefault] = useState(false);
-  const [planType, setPlanType] = useState<"credits" | "quota">("credits");
-  const [isFreeDefault, setIsFreeDefault] = useState(false);
 
   const PLUGIN_CATEGORIES = new Set(["messaging"]);
   const tools = toolSummaries.filter((t) => !PLUGIN_CATEGORIES.has(t.category ?? "general"));
