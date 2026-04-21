@@ -1,0 +1,41 @@
+name: Deploy to Akobot Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd /home/akobot/htdocs/akeo-adminpanel
+
+            echo "í³¥ Pulling latest code..."
+            git pull origin main
+
+            echo "í³¦ Installing dependencies..."
+            npm install
+
+            echo "í¿— Building project..."
+            npm run build
+
+            echo "íº€ Restarting PM2..."
+            pm2 restart akeo-admin || pm2 start "npm run start" --name akeo-admin
+
+            echo "âœ… Deployment complete!"
+          EOF
