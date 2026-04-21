@@ -20,22 +20,12 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy
+      - name: Deploy to Server
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             cd /home/akobot/htdocs/akeo-adminpanel
-
-            echo "í³¥ Pulling latest code..."
             git pull origin main
-
-            echo "í³¦ Installing dependencies..."
             npm install
-
-            echo "í¿— Building project..."
             npm run build
-
-            echo "íº€ Restarting PM2..."
             pm2 restart akeo-admin || pm2 start "npm run start" --name akeo-admin
-
-            echo "âœ… Deployment complete!"
           EOF
