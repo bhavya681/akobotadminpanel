@@ -45,7 +45,7 @@ export default async function GalleryPage({
           Gallery
         </h1>
         <p className="mt-2 text-[var(--muted-foreground)]">
-          Manage user-generated content: images, videos, and AI outputs
+          Manage user generated content: images, videos, and AI outputs
         </p>
       </header>
 
