@@ -4,7 +4,7 @@ import {
   getUserById,
   getWalletBalance,
   getWalletHistory,
-} from "@/lib/api/admin-client";
+} from "@/lib/api/admin-server-client";
 import { WalletView } from "./wallet-view";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -28,7 +28,7 @@ export default async function WalletPage({
 
   if (email && !userId) {
     const res = await searchUserByEmail(email);
-    if (res.ok && res.data && !("message" in res.data)) {
+    if (res.ok && res.data && typeof res.data === "object" && !("message" in res.data)) {
       user = res.data as { _id?: string; username?: string; email?: string };
     }
   } else if (userId) {
@@ -45,16 +45,16 @@ export default async function WalletPage({
       }),
     ]);
 
-    if (userRes.ok && userRes.data && !("message" in userRes.data)) {
+    if (userRes.ok && userRes.data && typeof userRes.data === "object" && !("message" in userRes.data)) {
       user = userRes.data as { _id?: string; username?: string; email?: string };
     } else {
       user = { _id: userId, username: "User", email: "" };
     }
 
-    if (balanceRes.ok && balanceRes.data && !("message" in balanceRes.data)) {
+    if (balanceRes.ok && balanceRes.data && typeof balanceRes.data === "object" && !("message" in balanceRes.data)) {
       balance = (balanceRes.data as { balance?: number }).balance ?? 0;
     }
-    if (historyRes.ok && historyRes.data && !("message" in historyRes.data)) {
+    if (historyRes.ok && historyRes.data && typeof historyRes.data === "object" && !("message" in historyRes.data)) {
       const h = historyRes.data as {
         transactions?: import("@/lib/api/admin-client").WalletTransaction[];
         total?: number;

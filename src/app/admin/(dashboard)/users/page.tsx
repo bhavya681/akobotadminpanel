@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getUsers, searchUserByEmail } from "@/lib/api/admin-client";
+import { getUsers, searchUserByEmail } from "@/lib/api/admin-server-client";
 import { UsersTable } from "./users-table";
 import { CreateUserForm } from "./create-user-form";
 
@@ -33,7 +33,7 @@ export default async function UsersPage({
 
   if (email) {
     const res = await searchUserByEmail(email);
-    if (res.ok && res.data && !("message" in res.data)) {
+    if (res.ok && res.data && typeof res.data === "object" && !("message" in res.data)) {
       usersData = {
         users: [res.data as import("@/lib/api/admin-client").User],
         total: 1,
@@ -59,9 +59,9 @@ export default async function UsersPage({
       isActive: isActive === "true" ? true : isActive === "false" ? false : undefined,
       isBanned: isBanned === "true" ? true : isBanned === "false" ? false : undefined,
     });
-    const data = res.ok
+    const data = (res.ok && typeof res.data === "object" && res.data
       ? res.data
-      : { users: [], total: 0, page: 1, limit, totalPages: 0 };
+      : { users: [], total: 0, page: 1, limit, totalPages: 0 }) as any;
     usersData = {
       ...data,
       totalPages: data.totalPages ?? Math.max(1, Math.ceil(data.total / data.limit)),

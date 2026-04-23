@@ -1,4 +1,4 @@
-import { getAdminModels } from "@/lib/api/admin-client";
+import { getAdminModels } from "@/lib/api/admin-server-client";
 import { ModelsTable } from "./models-table";
 import { CreateModelForm } from "./create-model-form";
 

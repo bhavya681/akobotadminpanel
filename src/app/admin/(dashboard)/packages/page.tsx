@@ -1,4 +1,4 @@
-import { getAdminModels, getAdminPackages, getToolSummaries } from "@/lib/api/admin-client";
+import { getAdminModels, getAdminPackages, getToolSummaries } from "@/lib/api/admin-server-client";
 import { PackagesTable } from "./packages-table";
 import { CreatePackageForm } from "./create-package-form";
 

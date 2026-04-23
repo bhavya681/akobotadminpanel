@@ -1,9 +1,26 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+} from "recharts";
 import { getFullInsights } from "@/lib/api/admin-client";
 
-type MonthlyItem = { month?: string; revenue?: number; orders?: number; credits?: number };
-type GatewayItem = { gateway?: string; total?: number; orders?: number };
-type PackageItem = { name?: string; orderCount?: number; revenue?: number };
+type MonthlyItem = { label?: string; revenue?: number; orders?: number; credits?: number };
+type GatewayItem = { gateway?: string; totalRevenue?: number; totalOrders?: number };
+type PackageItem = { packageName?: string; totalOrders?: number; totalRevenue?: number };
 type ActivityItem = {
   type?: string;
   icon?: string;
@@ -18,36 +35,63 @@ type Summary = {
   growth?: Record<string, number>;
 };
 
-export default async function AdminDashboardPage() {
-  const res = await getFullInsights();
-  if (!res.ok) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-6 text-red-700 dark:text-red-400">
-          <p className="font-medium">Unable to load insights</p>
-          <p className="mt-1 text-sm">
-            {(res.data as { message?: string })?.message ?? "Failed to load insights"}
-          </p>
-        </div>
-      </div>
-    );
-  }
+const COLORS = ["#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#3b82f6", "#ec4899"];
 
-  const d = res.data as {
+export default function AdminDashboardPage() {
+  const [data, setData] = useState<{
     summary?: Summary;
     monthlyRevenue?: MonthlyItem[];
     gatewayBreakdown?: GatewayItem[];
     topPackages?: PackageItem[];
     activity?: ActivityItem[];
-  };
-  const summary = d.summary ?? null;
-  const monthly = Array.isArray(d.monthlyRevenue) ? d.monthlyRevenue : [];
-  const gateways = Array.isArray(d.gatewayBreakdown) ? d.gatewayBreakdown : [];
-  const topPackages = Array.isArray(d.topPackages) ? d.topPackages : [];
-  const activity = Array.isArray(d.activity) ? d.activity : [];
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getFullInsights().then((res) => {
+      if (!res.ok) {
+        setError((res.data as { message?: string })?.message ?? "Failed to load insights");
+      } else {
+        setData(res.data as any);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 w-48 rounded bg-[var(--muted)]" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 rounded-xl bg-[var(--muted)]" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-6 text-red-700 dark:text-red-400">
+          <p className="font-medium">Unable to load insights</p>
+          <p className="mt-1 text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const summary = data?.summary ?? null;
+  const monthly = Array.isArray(data?.monthlyRevenue) ? data.monthlyRevenue : [];
+  const gateways = Array.isArray(data?.gatewayBreakdown) ? data.gatewayBreakdown : [];
+  const topPackages = Array.isArray(data?.topPackages) ? data.topPackages : [];
+  const activity = Array.isArray(data?.activity) ? data.activity : [];
 
   const growth = summary?.growth ?? {};
-  const maxRevenue = Math.max(...monthly.map((m) => m.revenue ?? 0), 1);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 transition-colors duration-300">
@@ -97,25 +141,45 @@ export default async function AdminDashboardPage() {
             Monthly Revenue
           </h2>
           {monthly.length > 0 ? (
-            <div className="space-y-3">
-              {monthly.slice(0, 12).map((m, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-sm text-[var(--muted-foreground)]">
-                    {m.month ?? `M${i + 1}`}
-                  </span>
-                  <div className="flex-1 h-8 bg-[var(--muted)] rounded-lg overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 dark:bg-emerald-600 rounded-lg transition-all duration-500 min-w-[2px]"
-                      style={{
-                        width: `${Math.max(2, ((m.revenue ?? 0) / maxRevenue) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="w-20 shrink-0 text-right text-sm font-medium text-[var(--foreground)]">
-                    {formatCurrency(m.revenue ?? 0)}
-                  </span>
-                </div>
-              ))}
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={monthly}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                    axisLine={{ stroke: "var(--border)" }}
+                  />
+                  <YAxis
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                    axisLine={{ stroke: "var(--border)" }}
+                    tickFormatter={(v) => `₹${v}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      color: "var(--foreground)",
+                    }}
+                    formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, "Revenue"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorRevenue)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           ) : (
             <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">
@@ -130,27 +194,50 @@ export default async function AdminDashboardPage() {
             Revenue by Gateway
           </h2>
           {gateways.length > 0 ? (
-            <div className="space-y-4">
-              {gateways.map((g, i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium capitalize text-[var(--foreground)]">
-                      {g.gateway ?? "Unknown"}
-                    </span>
-                    <span className="text-[var(--muted-foreground)]">
-                      {formatCurrency(g.total ?? 0)} · {g.orders ?? 0} orders
-                    </span>
-                  </div>
-                  <div className="h-2 bg-[var(--muted)] rounded-full overflow-hidden">
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={gateways}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={4}
+                    dataKey="totalRevenue"
+                    nameKey="gateway"
+                  >
+                    {gateways.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      color: "var(--foreground)",
+                    }}
+                    formatter={(value: any, name: any) => [
+                      `₹${Number(value).toFixed(2)}`,
+                      String(name).charAt(0).toUpperCase() + String(name).slice(1),
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 flex flex-wrap justify-center gap-4">
+                {gateways.map((g, i) => (
+                  <div key={i} className="flex items-center gap-2">
                     <div
-                      className="h-full bg-violet-500 dark:bg-violet-600 rounded-full transition-all duration-500"
-                      style={{
-                        width: `${summary?.revenueTotal ? ((g.total ?? 0) / summary.revenueTotal) * 100 : 0}%`,
-                      }}
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: COLORS[i % COLORS.length] }}
                     />
+                    <span className="text-xs text-[var(--muted-foreground)] capitalize">
+                      {g.gateway} · ₹{(g.totalRevenue ?? 0).toFixed(0)}
+                    </span>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
             <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">
@@ -165,25 +252,34 @@ export default async function AdminDashboardPage() {
             Top Packages
           </h2>
           {topPackages.length > 0 ? (
-            <div className="space-y-3">
-              {topPackages.map((p, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-4 rounded-lg border border-[var(--border)] p-3 transition-colors hover:bg-[var(--muted)]/50"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--muted)] text-sm font-semibold text-[var(--muted-foreground)]">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[var(--foreground)] truncate">
-                      {p.name ?? `Package ${i + 1}`}
-                    </p>
-                    <p className="text-xs text-[var(--muted-foreground)]">
-                      {p.orderCount ?? 0} orders · {formatCurrency(p.revenue ?? 0)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topPackages.slice(0, 6)} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                  <XAxis
+                    type="number"
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                    axisLine={{ stroke: "var(--border)" }}
+                  />
+                  <YAxis
+                    dataKey="packageName"
+                    type="category"
+                    width={120}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                    axisLine={{ stroke: "var(--border)" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      color: "var(--foreground)",
+                    }}
+                    formatter={(value: any) => [Number(value), "Orders"]}
+                  />
+                  <Bar dataKey="totalOrders" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           ) : (
             <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">
@@ -253,15 +349,6 @@ export default async function AdminDashboardPage() {
           </svg>
         </Link>
         <Link
-          href="/admin/tokens"
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
-        >
-          Active tokens
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </Link>
-        <Link
           href="/admin/packages"
           className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
         >
@@ -275,15 +362,6 @@ export default async function AdminDashboardPage() {
           className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
         >
           Model registry
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </Link>
-        <Link
-          href="/admin/gallery"
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
-        >
-          Gallery
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="m9 18 6-6-6-6" />
           </svg>
@@ -304,40 +382,35 @@ function StatCard({
   value: number;
   format: "number" | "currency";
   icon: string;
-  growth?: number;
+  growth?: number | null;
 }) {
-  const displayValue =
-    format === "currency" ? formatCurrency(value) : value.toLocaleString();
-  const hasGrowth = typeof growth === "number" && growth !== 0;
+  const formatted =
+    format === "currency"
+      ? `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : value.toLocaleString();
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm transition-colors duration-300">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--muted)] text-2xl">
-            {icon}
-          </span>
-          <div>
-            <p className="text-sm font-medium text-[var(--muted-foreground)]">
-              {label}
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm transition-colors duration-300">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)]">
+            {formatted}
+          </p>
+          {growth !== undefined && growth !== null && (
+            <p
+              className={`mt-1 text-xs font-medium ${
+                growth >= 0
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-red-600 dark:text-red-400"
+              }`}
+            >
+              {growth >= 0 ? "+" : ""}
+              {growth} this month
             </p>
-            <p className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-              {displayValue}
-            </p>
-          </div>
+          )}
         </div>
-        {hasGrowth && (
-          <span
-            className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              growth > 0
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-            }`}
-          >
-            {growth > 0 ? "+" : ""}
-            {growth}%
-          </span>
-        )}
+        <span className="text-2xl">{icon}</span>
       </div>
     </div>
   );
@@ -345,28 +418,23 @@ function StatCard({
 
 function getActivityIcon(type?: string): string {
   const map: Record<string, string> = {
-    signup: "👤",
-    payment: "💳",
-    failed_payment: "⚠️",
-    bonus: "🎁",
-    ban: "🚫",
-    order: "📦",
+    new_user: "👤",
+    payment: "💰",
+    payment_failed: "❌",
+    signup_bonus: "🎁",
+    promo: "🎫",
+    admin_credit: "👑",
+    refund: "↩️",
+    user_banned: "🚫",
   };
-  return map[type ?? ""] ?? "•";
+  return map[type ?? ""] ?? "📌";
 }
 
-function formatCurrency(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
-
-function formatDate(s: string): string {
+function formatDate(d?: string): string {
+  if (!d) return "";
   try {
-    return new Date(s).toLocaleString();
+    return new Date(d).toLocaleString();
   } catch {
-    return s;
+    return d;
   }
 }

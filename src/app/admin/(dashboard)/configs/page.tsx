@@ -1,4 +1,4 @@
-import { getAdminConfigs } from "@/lib/api/admin-client";
+import { getAdminConfigs } from "@/lib/api/admin-server-client";
 import { CreateConfigForm } from "./create-config-form";
 import { ConfigsTable } from "./configs-table";
 import { ConfigKeyLookup } from "./config-key-lookup";

@@ -30,7 +30,7 @@ import {
   type CreatePackageInput,
   type CreateConfigInput,
   type PackageRule,
-} from "@/lib/api/admin-client";
+} from "@/lib/api/admin-server-client";
 
 function parseJsonField<T>(value: FormDataEntryValue | null, fallback: T): T {
   const raw = value?.toString()?.trim();
@@ -118,7 +118,7 @@ export async function createUserAction(formData: FormData) {
     return { ok: false, error: "All fields are required." };
   }
   const { ok, data } = await createUserApi({ username, email, password });
-  if (ok && data && !("message" in data)) {
+  if (ok && data && typeof data === "object" && !("message" in data)) {
     revalidatePath("/admin/users");
     return { ok: true };
   }
@@ -141,7 +141,7 @@ export async function updateUserAction(id: string, formData: FormData) {
   if (isActive !== null && isActive !== undefined) body.isActive = isActive === "true";
   if (isBanned !== null && isBanned !== undefined) body.isBanned = isBanned === "true";
   const { ok, data } = await updateUserApi(id, body);
-  if (ok && data && !("message" in data)) {
+  if (ok && data && typeof data === "object" && !("message" in data)) {
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${id}`);
     return { ok: true };
@@ -276,7 +276,7 @@ export async function createModelAction(formData: FormData) {
       : undefined,
   };
   const { ok, data } = await createModelApi(body);
-  if (ok && data && !("message" in data)) {
+  if (ok && data && typeof data === "object" && !("message" in data)) {
     revalidatePath("/admin/models");
     return { ok: true };
   }
@@ -311,7 +311,7 @@ export async function updateModelAction(id: string, formData: FormData) {
     body.sortOrder = sortOrder ? parseInt(sortOrder, 10) : undefined;
 
   const { ok, data } = await updateModelApi(id, body);
-  if (ok && data && !("message" in data)) {
+  if (ok && data && typeof data === "object" && !("message" in data)) {
     revalidatePath("/admin/models");
     return { ok: true };
   }
@@ -348,7 +348,7 @@ export async function seedModelsAction(models: CreateModelInput[]) {
 // --- Gallery ---
 export async function updateGalleryItemAction(id: string, body: { isPrivate?: boolean }) {
   const { ok, data } = await updateGalleryItemApi(id, body);
-  if (ok && data && !("message" in data)) {
+  if (ok && data && typeof data === "object" && !("message" in data)) {
     revalidatePath("/admin/gallery");
     return { ok: true };
   }
@@ -420,7 +420,7 @@ export async function createPackageAction(formData: FormData) {
     allowedToolNames,
   };
   const { ok, data } = await createPackageApi(body);
-  if (ok && data && !("message" in data)) {
+  if (ok && data && typeof data === "object" && !("message" in data)) {
     revalidatePath("/admin/packages");
     return { ok: true };
   }
@@ -470,7 +470,7 @@ export async function updatePackageAction(id: string, formData: FormData) {
   }
 
   const { ok, data } = await updatePackageApi(id, body);
-  if (ok && data && !("message" in data)) {
+  if (ok && data && typeof data === "object" && !("message" in data)) {
     revalidatePath("/admin/packages");
     return { ok: true };
   }

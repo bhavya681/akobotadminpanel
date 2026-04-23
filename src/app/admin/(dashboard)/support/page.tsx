@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getSupportFeedback } from "@/lib/api/admin-client";
+import { getSupportFeedback } from "@/lib/api/admin-server-client";
 import { SupportFeedbackTable } from "./support-feedback-table";
 
 const LIMIT_OPTIONS = [10, 20, 50, 100] as const;
@@ -19,9 +19,9 @@ export default async function SupportFeedbackPage({
     : 20;
 
   const { ok, data } = await getSupportFeedback({ page, limit });
-  const items = ok && data?.items ? data.items : [];
-  const pagination = ok && data?.pagination
-    ? data.pagination
+  const items = ok && data && typeof data === "object" && "items" in data ? (data as any).items : [];
+  const pagination = ok && data && typeof data === "object" && "pagination" in data
+    ? (data as any).pagination
     : { page: 1, limit, total: 0, totalPages: 1 };
 
   return (

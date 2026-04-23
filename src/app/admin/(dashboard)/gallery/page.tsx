@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getAdminGallery } from "@/lib/api/admin-client";
+import { getAdminGallery } from "@/lib/api/admin-server-client";
 import { GalleryGrid } from "./gallery-grid";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -30,10 +30,10 @@ export default async function GalleryPage({
     toDate: toDate || undefined,
   });
 
-  const items = ok && data && !("message" in data) && "items" in data
+  const items = ok && data && typeof data === "object" && !("message" in data) && "items" in data
     ? (data as { items: import("@/lib/api/admin-client").GalleryItem[] }).items
     : [];
-  const total = ok && data && !("message" in data) && "total" in data
+  const total = ok && data && typeof data === "object" && !("message" in data) && "total" in data
     ? (data as { total: number }).total
     : 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));

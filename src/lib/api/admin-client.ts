@@ -1,12 +1,11 @@
 /**
- * Server-side admin API client. Uses cookies for auth.
+ * Browser-compatible admin API client. 
+ * This file uses only browser APIs and can be safely imported in client components.
+ * For server-side API calls, use admin-server-client.ts instead.
  */
 
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-
 const API_BASE =
-  (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "https://api.Akobot.ai").replace(
+  (process.env.NEXT_PUBLIC_API_URL ?? "https://api.Akobot.ai").replace(
     /\/$/,
     ""
   );
@@ -15,19 +14,29 @@ async function fetchAdmin<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<{ ok: boolean; status: number; data: T }> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  
+  // Try to get token from localStorage (if stored there)
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("admin_token");
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+  
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    credentials: "include", // Send cookies with request
     headers: { ...headers, ...(options.headers as Record<string, string>) },
-    cache: "no-store",
   });
+  
   const data = (await res.json().catch(() => ({}))) as T;
+  
   if (res.status === 401) {
-    redirect("/api/admin/refresh?redirect=" + encodeURIComponent("/admin"));
+    // Redirect on auth failure
+    if (typeof window !== "undefined") {
+      window.location.href = "/api/admin/refresh?redirect=" + encodeURIComponent("/admin");
+    }
   }
+  
   return { ok: res.ok, status: res.status, data };
 }
 
@@ -143,6 +152,16 @@ export async function getUsers(query: UsersQuery = {}) {
 
 export async function getUserById(id: string) {
   return fetchAdmin<User | { message?: string }>(`/api/admin/users/${id}`);
+}
+
+export async function getUserFullDetails(id: string) {
+  return fetchAdmin<{
+    user: User & { credits?: number; hasPurchasedCredits?: boolean };
+    wallet: { balance: number; transactions: Record<string, any>[] };
+    entitlement: unknown;
+    quotaUsage: Record<string, unknown>;
+  } | { message?: string }
+  >(`/api/admin/users/${id}/full`);
 }
 
 // --- Support ---

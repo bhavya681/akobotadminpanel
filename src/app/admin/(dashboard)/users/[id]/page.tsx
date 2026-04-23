@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { getUserById } from "@/lib/api/admin-client";
-import { UserEditForm } from "./user-edit-form";
+import { getUserFullDetails } from "@/lib/api/admin-server-client";
+import { UserDetailView } from "./user-detail-view";
 
 export default async function UserDetailPage({
   params,
@@ -8,9 +8,9 @@ export default async function UserDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { ok, data } = await getUserById(id);
+  const { ok, data } = await getUserFullDetails(id);
 
-  if (!ok || !data || "message" in data) {
+  if (!ok || !data || (typeof data === "object" && "message" in data)) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <p className="text-[var(--muted-foreground)]">User not found</p>
@@ -23,8 +23,6 @@ export default async function UserDetailPage({
       </div>
     );
   }
-
-  const user = data as import("@/lib/api/admin-client").User;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 transition-colors duration-300">
@@ -46,16 +44,7 @@ export default async function UserDetailPage({
         Back to users
       </Link>
 
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
-          Edit user
-        </h1>
-        <p className="mt-2 text-[var(--muted-foreground)]">{user.email}</p>
-      </header>
-
-      <div className="max-w-xl">
-        <UserEditForm user={user} />
-      </div>
+      <UserDetailView data={data as any} />
     </div>
   );
 }

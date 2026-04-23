@@ -1,4 +1,4 @@
-import { getTokens } from "@/lib/api/admin-client";
+import { getTokens } from "@/lib/api/admin-server-client";
 import { TokensTable } from "./tokens-table";
 import type { Token } from "@/lib/api/admin-client";
 
