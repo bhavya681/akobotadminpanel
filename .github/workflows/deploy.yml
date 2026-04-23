@@ -27,7 +27,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             set -e
 
-            cd /home/akobot/htdocs/akeo-adminpanel
+            cd /home/akobot1/htdocs/portal-7h3q.akobot.ai
 
             echo ">>> Stashing local changes..."
             git stash 
