@@ -11,6 +11,8 @@ import {
   makeUserAdmin as makeUserAdminApi,
   unlinkUserOAuth as unlinkUserOAuthApi,
   revokeToken as revokeTokenApi,
+  transferAgents as transferAgentsApi,
+  getUserAgents as getUserAgentsApi,
   createModel as createModelApi,
   updateModel as updateModelApi,
   deleteModel as deleteModelApi,
@@ -152,8 +154,8 @@ export async function updateUserAction(id: string, formData: FormData) {
   };
 }
 
-export async function deleteUserAction(id: string) {
-  const { ok, data } = await deleteUserApi(id);
+export async function deleteUserAction(id: string, options?: { deleteAllAgents?: boolean }) {
+  const { ok, data } = await deleteUserApi(id, options);
   if (ok) {
     revalidatePath("/admin/users");
     return { ok: true };
@@ -161,6 +163,31 @@ export async function deleteUserAction(id: string) {
   return {
     ok: false,
     error: (data as { message?: string })?.message ?? "Failed to delete user.",
+  };
+}
+
+export async function transferAgentsAction(sourceUserId: string, targetUserId: string) {
+  const { ok, data } = await transferAgentsApi(sourceUserId, targetUserId);
+  if (ok) {
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${sourceUserId}`);
+    revalidatePath(`/admin/users/${targetUserId}`);
+    return { ok: true, data: data as { message?: string; transferredCount?: number } };
+  }
+  return {
+    ok: false,
+    error: (data as { message?: string })?.message ?? "Failed to transfer agents.",
+  };
+}
+
+export async function getUserAgentsAction(userId: string) {
+  const { ok, data } = await getUserAgentsApi(userId);
+  if (ok) {
+    return { ok: true, data: data as { agents: { _id: string; name: string; status: string; createdAt: string }[]; count: number } };
+  }
+  return {
+    ok: false,
+    error: (data as { message?: string })?.message ?? "Failed to get user agents.",
   };
 }
 

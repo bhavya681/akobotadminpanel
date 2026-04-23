@@ -11,7 +11,12 @@ async function fetchAdmin<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<{ ok: boolean; status: number; data: T }> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {};
+  
+  // Only set Content-Type to application/json if there's a body
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
   
   // Try to get token from localStorage (if stored there)
   if (typeof window !== "undefined") {
@@ -186,8 +191,22 @@ export async function updateUser(id: string, body: Partial<User>) {
   });
 }
 
-export async function deleteUser(id: string) {
-  return fetchAdmin<{ message?: string }>(`/api/admin/users/${id}`, { method: "DELETE" });
+export async function deleteUser(id: string, options?: { deleteAllAgents?: boolean }) {
+  return fetchAdmin<{ message?: string }>(`/api/admin/users/${id}`, {
+    method: "DELETE",
+    body: JSON.stringify({ deleteAllAgents: options?.deleteAllAgents ?? false }),
+  });
+}
+
+export async function transferAgents(sourceUserId: string, targetUserId: string) {
+  return fetchAdmin<{ message?: string; transferredCount?: number }>(`/api/admin/users/${sourceUserId}/transfer-agents`, {
+    method: "POST",
+    body: JSON.stringify({ targetUserId }),
+  });
+}
+
+export async function getUserAgents(userId: string) {
+  return fetchAdmin<{ agents: { _id: string; name: string; status: string; createdAt: string }[]; count: number }>(`/api/admin/users/${userId}/agents`);
 }
 
 export async function banUser(id: string) {
@@ -555,7 +574,7 @@ export interface WalletHistoryResponse {
 }
 
 export interface WalletBalanceResponse {
-  balance?: number;
+  credits?: number;
   userId?: string;
   [key: string]: unknown;
 }

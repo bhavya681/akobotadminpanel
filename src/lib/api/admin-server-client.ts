@@ -21,7 +21,11 @@ export async function fetchAdminServer<T>(
 ): Promise<{ ok: boolean; status: number; data: T }> {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {};
+  // Only set Content-Type to application/json if there's a body
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -120,8 +124,22 @@ export async function updateUser(id: string, body: any) {
   });
 }
 
-export async function deleteUser(id: string) {
-  return fetchAdminServer(`/api/admin/users/${id}`, { method: "DELETE" });
+export async function deleteUser(id: string, options?: { deleteAllAgents?: boolean }) {
+  return fetchAdminServer(`/api/admin/users/${id}`, {
+    method: "DELETE",
+    body: JSON.stringify({ deleteAllAgents: options?.deleteAllAgents ?? false }),
+  });
+}
+
+export async function transferAgents(sourceUserId: string, targetUserId: string) {
+  return fetchAdminServer(`/api/admin/users/${sourceUserId}/transfer-agents`, {
+    method: "POST",
+    body: JSON.stringify({ targetUserId }),
+  });
+}
+
+export async function getUserAgents(userId: string) {
+  return fetchAdminServer(`/api/admin/users/${userId}/agents`);
 }
 
 export async function banUser(id: string) {

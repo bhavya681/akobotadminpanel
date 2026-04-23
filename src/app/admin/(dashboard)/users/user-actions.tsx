@@ -11,6 +11,8 @@ import {
   resetUserPasswordAction,
   makeUserAdminAction,
   unlinkUserOAuthAction,
+  transferAgentsAction,
+  getUserAgentsAction,
 } from "@/app/admin/actions";
 
 function MoreVerticalIcon({ className }: { className?: string }) {
@@ -77,9 +79,20 @@ export function UserActions({ user }: { user: User }) {
   const id = user._id ?? user.id ?? "";
   const [open, setOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
+
+  // Delete modal state
+  const [deleteAllAgents, setDeleteAllAgents] = useState(false);
+  const [transferMode, setTransferMode] = useState(false);
+  const [transferEmail, setTransferEmail] = useState("");
+  const [transferError, setTransferError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [agentsInfo, setAgentsInfo] = useState<{ count: number; agents: { _id: string; name: string; status: string }[] } | null>(null);
+  const [loadingAgents, setLoadingAgents] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -129,11 +142,87 @@ export function UserActions({ user }: { user: User }) {
     setShowPasswordModal(true);
   };
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = async () => {
     setOpen(false);
-    if (confirm("Delete this user? This cannot be undone.")) {
-      handleAction(() => deleteUserAction(id), "delete");
+    setDeleteAllAgents(false);
+    setTransferMode(false);
+    setTransferEmail("");
+    setTransferError("");
+    setDeleteError("");
+    setAgentsInfo(null);
+
+    // Fetch agent count for this user
+    setLoadingAgents(true);
+    try {
+      const result = await getUserAgentsAction(id);
+      if (result.ok && result.data) {
+        setAgentsInfo({ count: result.data.count, agents: result.data.agents });
+      }
+    } catch {
+      // If we can't fetch agents, just show the modal without agent info
     }
+    setLoadingAgents(false);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleteError("");
+
+    // If user has agents and transfer mode is selected, transfer first
+    if (agentsInfo && agentsInfo.count > 0 && transferMode) {
+      if (!transferEmail.trim()) {
+        setTransferError("Please enter the target user's email.");
+        return;
+      }
+      setTransferError("");
+      setLoading("transfer");
+      try {
+        // Search for the target user by email to get their ID
+        const searchRes = await fetch(`/api/admin/users/search?email=${encodeURIComponent(transferEmail.trim())}`, {
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
+        const searchData = await searchRes.json();
+        if (!searchRes.ok || !searchData?._id) {
+          setTransferError("User not found. Please enter a valid email address.");
+          setLoading(null);
+          return;
+        }
+        const targetUserId = searchData._id;
+        if (targetUserId === id) {
+          setTransferError("Cannot transfer agents to the same user being deleted.");
+          setLoading(null);
+          return;
+        }
+
+        const transferResult = await transferAgentsAction(id, targetUserId);
+        if (!transferResult.ok) {
+          setTransferError(transferResult.error ?? "Failed to transfer agents.");
+          setLoading(null);
+          return;
+        }
+      } catch {
+        setTransferError("Failed to transfer agents. Please try again.");
+        setLoading(null);
+        return;
+      }
+      setLoading(null);
+    }
+
+    // Now delete the user
+    setLoading("delete");
+    try {
+      const result = await deleteUserAction(id, { deleteAllAgents: deleteAllAgents });
+      if (result.ok) {
+        setShowDeleteModal(false);
+        router.refresh();
+      } else {
+        setDeleteError(result.error ?? "Failed to delete user.");
+      }
+    } catch {
+      setDeleteError("An unexpected error occurred.");
+    }
+    setLoading(null);
   };
 
   const handleUnlinkGoogleClick = () => {
@@ -237,6 +326,7 @@ export function UserActions({ user }: { user: User }) {
         </div>
       )}
 
+      {/* Password Reset Modal */}
       {showPasswordModal && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
@@ -287,6 +377,140 @@ export function UserActions({ user }: { user: User }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Modal */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">
+              Delete User
+            </h3>
+            <p className="text-sm text-[var(--muted-foreground)] mb-4">
+              Are you sure you want to delete <strong className="text-[var(--foreground)]">{user.username}</strong> ({user.email})? This action cannot be undone.
+            </p>
+
+            {loadingAgents ? (
+              <div className="flex items-center gap-2 py-3 text-sm text-[var(--muted-foreground)]">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Checking for agents...
+              </div>
+            ) : agentsInfo && agentsInfo.count > 0 ? (
+              <div className="space-y-4">
+                {/* Agent warning */}
+                <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-4">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    ⚠️ This user owns {agentsInfo.count} agent{agentsInfo.count > 1 ? "s" : ""}
+                  </p>
+                  <div className="mt-2 max-h-24 overflow-y-auto">
+                    {agentsInfo.agents.map((agent) => (
+                      <div key={agent._id} className="text-xs text-amber-700 dark:text-amber-400">
+                        • {agent.name} ({agent.status})
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                    You must either transfer these agents to another user or delete them along with the user.
+                  </p>
+                </div>
+
+                {/* Transfer agents option */}
+                <div className="rounded-lg border border-[var(--border)] p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="agentAction"
+                      checked={transferMode}
+                      onChange={() => { setTransferMode(true); setDeleteAllAgents(false); }}
+                      className="mt-0.5"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-[var(--foreground)]">Transfer agents to another user</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">All agents and their RAG data will be moved to a new owner.</p>
+                    </div>
+                  </label>
+                  {transferMode && (
+                    <div className="mt-3 ml-7">
+                      <input
+                        type="email"
+                        value={transferEmail}
+                        onChange={(e) => { setTransferEmail(e.target.value); setTransferError(""); }}
+                        placeholder="Target user's email address"
+                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]"
+                      />
+                      {transferError && (
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{transferError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Delete all agents option */}
+                <div className="rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20 p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="agentAction"
+                      checked={deleteAllAgents}
+                      onChange={() => { setDeleteAllAgents(true); setTransferMode(false); }}
+                      className="mt-0.5"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-red-700 dark:text-red-400">Delete all agents &amp; RAG data</p>
+                      <p className="text-xs text-red-600 dark:text-red-500">
+                        All agents, their knowledge base documents, ingested files, and Qdrant vectors will be permanently deleted.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {!transferMode && !deleteAllAgents && (
+                  <p className="text-xs text-[var(--muted-foreground)] text-center">
+                    Select an option above to proceed with deletion.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
+            {deleteError && (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+            )}
+
+            <div className="mt-4 flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteAllAgents(false);
+                  setTransferMode(false);
+                  setTransferEmail("");
+                  setTransferError("");
+                  setDeleteError("");
+                }}
+                className="rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isBusy || (agentsInfo !== null && agentsInfo.count > 0 && !transferMode && !deleteAllAgents)}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading === "delete" ? "Deleting..." : loading === "transfer" ? "Transferring..." : "Delete User"}
+              </button>
+            </div>
           </div>
         </div>
       )}

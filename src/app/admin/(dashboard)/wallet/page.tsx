@@ -52,7 +52,7 @@ export default async function WalletPage({
     }
 
     if (balanceRes.ok && balanceRes.data && typeof balanceRes.data === "object" && !("message" in balanceRes.data)) {
-      balance = (balanceRes.data as { balance?: number }).balance ?? 0;
+      balance = (balanceRes.data as { credits?: number }).credits ?? 0;
     }
     if (historyRes.ok && historyRes.data && typeof historyRes.data === "object" && !("message" in historyRes.data)) {
       const h = historyRes.data as {

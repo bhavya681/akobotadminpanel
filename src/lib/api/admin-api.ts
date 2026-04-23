@@ -26,10 +26,11 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+function getHeaders(hasBody: boolean = false): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (hasBody) {
+    headers["Content-Type"] = "application/json";
+  }
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
@@ -41,7 +42,7 @@ async function fetchApi<T>(
 ): Promise<{ ok: boolean; status: number; data: T }> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: { ...getHeaders(), ...(options.headers as Record<string, string>) },
+    headers: { ...getHeaders(!!options.body), ...(options.headers as Record<string, string>) },
   });
   const data = (await res.json().catch(() => ({}))) as T;
   return { ok: res.ok, status: res.status, data };
@@ -250,10 +251,22 @@ export async function updateUser(id: string, body: Partial<User>) {
   });
 }
 
-export async function deleteUser(id: string) {
+export async function deleteUser(id: string, options?: { deleteAllAgents?: boolean }) {
   return fetchApi<{ message?: string }>(`/api/admin/users/${id}`, {
     method: "DELETE",
+    body: JSON.stringify({ deleteAllAgents: options?.deleteAllAgents ?? false }),
   });
+}
+
+export async function transferAgents(sourceUserId: string, targetUserId: string) {
+  return fetchApi<{ message?: string; transferredCount?: number }>(`/api/admin/users/${sourceUserId}/transfer-agents`, {
+    method: "POST",
+    body: JSON.stringify({ targetUserId }),
+  });
+}
+
+export async function getUserAgents(userId: string) {
+  return fetchApi<{ agents: { _id: string; name: string; status: string; createdAt: string }[]; count: number }>(`/api/admin/users/${userId}/agents`);
 }
 
 export async function banUser(id: string) {

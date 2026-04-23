@@ -62,7 +62,7 @@ async function proxyRequest(request: NextRequest, method: string) {
   }
 
   let body: BodyInit | undefined;
-  if (["POST", "PUT", "PATCH"].includes(method)) {
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     const contentTypeValue = request.headers.get("content-type") || "";
     if (contentTypeValue.includes("application/json")) {
       try {
@@ -72,7 +72,7 @@ async function proxyRequest(request: NextRequest, method: string) {
       }
     } else if (contentTypeValue.includes("multipart/form-data")) {
       body = await request.formData();
-    } else {
+    } else if (request.headers.get("content-length") && parseInt(request.headers.get("content-length") || "0") > 0) {
       body = await request.text();
     }
   }
