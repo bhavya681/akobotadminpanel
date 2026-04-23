@@ -2,14 +2,11 @@
  * Browser-compatible admin API client. 
  * This file uses only browser APIs and can be safely imported in client components.
  * For server-side API calls, use admin-server-client.ts instead.
+ * 
+ * All requests go through Next.js rewrites (proxy) so the backend URL is never exposed to the browser.
  */
 
-const API_BASE =
-  (process.env.NEXT_PUBLIC_API_URL ?? "https://api.Akobot.ai").replace(
-    /\/$/,
-    ""
-  );
-
+const API_BASE = ""; // Use relative paths — Next.js rewrites / app router proxy to backend
 async function fetchAdmin<T>(
   path: string,
   options: RequestInit = {}

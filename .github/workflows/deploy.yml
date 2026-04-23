@@ -25,9 +25,24 @@ jobs:
       - name: Deploy
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+
             cd /home/akobot/htdocs/akeo-adminpanel
-            git pull origin main
-            npm install
+
+            echo ">>> Stashing local changes..."
+            git stash 
+
+            echo ">>> Pulling latest code..."
+            git pull
+
+            echo ">>> Installing dependencies..."
+            npm install --force
+
+            echo ">>> Building..."
             npm run build
+
+            echo ">>> Restarting PM2..."
             pm2 restart akeo-admin || pm2 start "npm run start" --name akeo-admin
+
+            echo ">>> Deploy complete!"
           EOF
