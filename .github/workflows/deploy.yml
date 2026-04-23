@@ -24,25 +24,67 @@ jobs:
 
       - name: Deploy
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'ENDSSH'
             set -e
 
+            # ─── Load nvm (install if missing) ───────────────────────────────
+            export NVM_DIR="$HOME/.nvm"
+
+            if [ ! -d "$NVM_DIR" ]; then
+              echo ">>> nvm not found — installing..."
+              curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+            fi
+
+            # Source nvm into current shell
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+            # ─── Ensure correct Node version ─────────────────────────────────
+            REQUIRED_NODE="20"
+
+            if ! nvm ls "$REQUIRED_NODE" 2>/dev/null | grep -q "v$REQUIRED_NODE"; then
+              echo ">>> Node $REQUIRED_NODE not installed — installing via nvm..."
+              nvm install "$REQUIRED_NODE"
+            fi
+
+            nvm use "$REQUIRED_NODE"
+            echo ">>> Using Node $(node -v) / npm $(npm -v)"
+
+            # ─── Pull latest code ─────────────────────────────────────────────
             cd /home/akobot1/htdocs/portal-7h3q.akobot.ai
 
             echo ">>> Stashing local changes..."
-            git stash 
+            git stash
 
             echo ">>> Pulling latest code..."
             git pull
 
+            # ─── Install dependencies ─────────────────────────────────────────
             echo ">>> Installing dependencies..."
-            npm install --force
+            npm ci --omit=dev=false
 
+            # ─── Build ────────────────────────────────────────────────────────
             echo ">>> Building..."
             npm run build
 
+            # ─── Restart PM2 with correct Node path ───────────────────────────
             echo ">>> Restarting PM2..."
-            pm2 restart akeo-admin || pm2 start "npm run start" --name akeo-admin
+            # Ensure pm2 uses the nvm-managed node
+            NVM_NODE_PATH=$(nvm which "$REQUIRED_NODE")
+            NODE_BIN_DIR=$(dirname "$NVM_NODE_PATH")
 
-            echo ">>> Deploy complete!"
-          EOF
+            if pm2 describe akeo-admin > /dev/null 2>&1; then
+              pm2 restart akeo-admin --update-env
+            else
+              PATH="$NODE_BIN_DIR:$PATH" pm2 start "npm run start" \
+                --name akeo-admin \
+                --interpreter "$NVM_NODE_PATH" \
+                --no-autorestart=false \
+                --restart-delay=3000 \
+                --max-restarts=5
+            fi
+
+            pm2 save
+
+            echo ">>> Deploy complete! Node: $(node -v)"
+          ENDSSH
