@@ -13,6 +13,7 @@ import {
   unlinkUserOAuthAction,
   transferAgentsAction,
   getUserAgentsAction,
+  assignPackageAction,
 } from "@/app/admin/actions";
 
 function MoreVerticalIcon({ className }: { className?: string }) {
@@ -74,12 +75,29 @@ function TrashIcon({ className }: { className?: string }) {
   );
 }
 
+function GiftIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="3" y="8" width="18" height="4" rx="1" />
+      <path d="M12 8v13" />
+      <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
+      <path d="M7.5 8a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 2.5 2.5v5" />
+      <path d="M16.5 8v-2.5a2.5 2.5 0 0 1 5 0 2.5 2.5 0 0 1-2.5 2.5h-5" />
+    </svg>
+  );
+}
+
 export function UserActions({ user }: { user: User }) {
   const router = useRouter();
   const id = user._id ?? user.id ?? "";
   const [open, setOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAssignPackageModal, setShowAssignPackageModal] = useState(false);
+  const [packagesList, setPackagesList] = useState<Array<{ _id: string; name: string; planType: string; includedCredits: number; currentPrice: number; currency: string }>>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState("");
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
@@ -229,7 +247,45 @@ export function UserActions({ user }: { user: User }) {
     handleAction(() => unlinkUserOAuthAction(user.email), "unlink-google");
   };
 
-  const isBusy = !!loading;
+  const handleAssignPackageClick = async () => {
+    setOpen(false);
+    setAssignError("");
+    setSelectedPackageId("");
+    setAssignLoading(true);
+    try {
+      const res = await fetch("/api/admin/packages", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok && data?.packages) {
+        setPackagesList(data.packages);
+      }
+    } catch {
+      // ignore
+    }
+    setAssignLoading(false);
+    setShowAssignPackageModal(true);
+  };
+
+  const handleConfirmAssignPackage = async () => {
+    if (!selectedPackageId) {
+      setAssignError("Please select a package");
+      return;
+    }
+    setAssignLoading(true);
+    setAssignError("");
+    const result = await assignPackageAction(id, selectedPackageId);
+    if (result.ok) {
+      setShowAssignPackageModal(false);
+      router.refresh();
+    } else {
+      setAssignError(result.error ?? "Failed to assign package");
+    }
+    setAssignLoading(false);
+  };
+
+  const isBusy = !!loading || assignLoading;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -312,6 +368,16 @@ export function UserActions({ user }: { user: User }) {
           >
             <LinkBreakIcon />
             {loading === "unlink-google" ? "Unlinking..." : "Unlink Google"}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={handleAssignPackageClick}
+            disabled={isBusy}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-purple-600 dark:text-purple-400 transition-colors hover:bg-[var(--muted)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <GiftIcon />
+            {assignLoading ? "Loading..." : "Assign Package"}
           </button>
           <button
             type="button"
@@ -509,6 +575,95 @@ export function UserActions({ user }: { user: User }) {
                 className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading === "delete" ? "Deleting..." : loading === "transfer" ? "Transferring..." : "Delete User"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Package Modal */}
+      {showAssignPackageModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setShowAssignPackageModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">
+              Assign Package
+            </h3>
+            <p className="text-sm text-[var(--muted-foreground)] mb-4">
+              Assign a package to <strong className="text-[var(--foreground)]">{user.username}</strong>. Credits will be added to their wallet and their entitlement will be updated.
+            </p>
+
+            {packagesList.length === 0 ? (
+              <div className="py-4 text-center text-sm text-[var(--muted-foreground)]">No active packages found</div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {packagesList.map((pkg) => (
+                  <label
+                    key={pkg._id}
+                    className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                      selectedPackageId === pkg._id
+                        ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                        : "border-[var(--border)] hover:bg-[var(--muted)]/30"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="package"
+                      value={pkg._id}
+                      checked={selectedPackageId === pkg._id}
+                      onChange={() => { setSelectedPackageId(pkg._id); setAssignError(""); }}
+                      className="accent-purple-500"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-[var(--foreground)]">{pkg.name}</span>
+                        <span className="text-xs text-[var(--muted-foreground)]">
+                          {pkg.currency === "INR" ? "₹" : "$"}{pkg.currentPrice}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-[var(--muted-foreground)] capitalize">{pkg.planType}</span>
+                        {pkg.includedCredits > 0 && (
+                          <>
+                            <span className="text-xs text-[var(--muted-foreground)]">·</span>
+                            <span className="text-xs text-[var(--muted-foreground)]">{pkg.includedCredits.toLocaleString()} credits</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {assignError && (
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">{assignError}</p>
+            )}
+
+            <div className="mt-4 flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAssignPackageModal(false);
+                  setAssignError("");
+                  setSelectedPackageId("");
+                }}
+                className="rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAssignPackage}
+                disabled={assignLoading || !selectedPackageId}
+                className="rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {assignLoading ? "Assigning..." : "Assign Package"}
               </button>
             </div>
           </div>

@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { AssignPackageModal } from "./assign-package-modal";
+import { getUserAgents, deleteAgent } from "@/lib/api/admin-api";
+import type { AgentItem } from "@/lib/api/admin-api";
 
 interface UserDetailViewProps {
   data: {
@@ -53,7 +56,41 @@ interface UserDetailViewProps {
 
 export function UserDetailView({ data }: UserDetailViewProps) {
   const { user, wallet, entitlement, quotaUsage } = data;
-  const [activeTab, setActiveTab] = useState<"overview" | "wallet" | "quota">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "wallet" | "quota" | "agents">("overview");
+  const [showAssignPackage, setShowAssignPackage] = useState(false);
+  const [agents, setAgents] = useState<AgentItem[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(false);
+  const [deletingAgentId, setDeletingAgentId] = useState<string | null>(null);
+
+  const userId = user._id || user.id || "";
+
+  const fetchAgents = useCallback(async () => {
+    if (!userId) return;
+    setAgentsLoading(true);
+    const { ok, data } = await getUserAgents(userId);
+    if (ok && data) {
+      setAgents((data as any).agents || []);
+    }
+    setAgentsLoading(false);
+  }, [userId]);
+
+  useEffect(() => {
+    if (activeTab === "agents") {
+      fetchAgents();
+    }
+  }, [activeTab, fetchAgents]);
+
+  const handleDeleteAgent = useCallback(async (agentId: string) => {
+    if (!confirm("Are you sure you want to delete this agent? This will also remove its knowledge base and integrations.")) return;
+    setDeletingAgentId(agentId);
+    const { ok } = await deleteAgent(agentId);
+    if (ok) {
+      setAgents((prev) => prev.filter((a) => a._id !== agentId));
+    } else {
+      alert("Failed to delete agent");
+    }
+    setDeletingAgentId(null);
+  }, []);
 
   const formatDate = (d?: string) => {
     if (!d) return "N/A";
@@ -108,7 +145,7 @@ export function UserDetailView({ data }: UserDetailViewProps) {
       {/* Tabs */}
       <div className="mb-6 border-b border-[var(--border)]">
         <nav className="flex gap-6">
-          {(["overview", "wallet", "quota"] as const).map((tab) => (
+          {(["overview", "wallet", "quota", "agents"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -167,7 +204,15 @@ export function UserDetailView({ data }: UserDetailViewProps) {
 
           {/* Active Entitlement */}
           <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-[var(--foreground)] mb-4">Active Plan</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-[var(--foreground)]">Active Plan</h2>
+              <button
+                onClick={() => setShowAssignPackage(true)}
+                className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+              >
+                Assign Package
+              </button>
+            </div>
             {entitlement ? (
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -362,6 +407,74 @@ export function UserDetailView({ data }: UserDetailViewProps) {
             )}
           </section>
         </div>
+      )}
+
+      {activeTab === "agents" && (
+        <div className="space-y-6">
+          <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-[var(--foreground)]">Custom Agents</h2>
+              <span className="text-xs text-[var(--muted-foreground)]">{agents.length} agent(s)</span>
+            </div>
+
+            {agentsLoading ? (
+              <div className="py-8 text-center text-sm text-[var(--muted-foreground)]">Loading agents...</div>
+            ) : agents.length === 0 ? (
+              <div className="py-8 text-center text-sm text-[var(--muted-foreground)]">No custom agents found for this user</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--border)]">
+                      <th className="pb-3 text-left font-medium text-[var(--muted-foreground)]">Name</th>
+                      <th className="pb-3 text-left font-medium text-[var(--muted-foreground)]">Status</th>
+                      <th className="pb-3 text-left font-medium text-[var(--muted-foreground)]">Agent ID</th>
+                      <th className="pb-3 text-left font-medium text-[var(--muted-foreground)]">Created</th>
+                      <th className="pb-3 text-right font-medium text-[var(--muted-foreground)]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border)]">
+                    {agents.map((agent) => (
+                      <tr key={agent._id} className="hover:bg-[var(--muted)]/30 transition-colors">
+                        <td className="py-3 font-medium text-[var(--foreground)]">{agent.name}</td>
+                        <td className="py-3">
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                              agent.status === "active"
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                            }`}
+                          >
+                            {agent.status}
+                          </span>
+                        </td>
+                        <td className="py-3 font-mono text-xs text-[var(--muted-foreground)]">{agent._id}</td>
+                        <td className="py-3 text-[var(--muted-foreground)]">{formatDate(agent.createdAt)}</td>
+                        <td className="py-3 text-right">
+                          <button
+                            onClick={() => handleDeleteAgent(agent._id)}
+                            disabled={deletingAgentId === agent._id}
+                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                          >
+                            {deletingAgentId === agent._id ? "..." : "Delete"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+      {showAssignPackage && (
+        <AssignPackageModal
+          userId={user._id || user.id || ""}
+          userName={user.username}
+          onClose={() => setShowAssignPackage(false)}
+          onAssigned={() => window.location.reload()}
+        />
       )}
     </div>
   );

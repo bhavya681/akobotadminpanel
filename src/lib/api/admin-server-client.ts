@@ -421,3 +421,37 @@ export async function deleteConfig(key: string) {
     method: "DELETE",
   });
 }
+
+// --- Package Assignment (Admin) ---
+export async function getAdminPackagesList() {
+  return fetchAdminServer("/api/admin/packages");
+}
+
+export async function assignPackageToUser(userId: string, packageId: string) {
+  return fetchAdminServer(`/api/admin/users/${userId}/assign-package`, {
+    method: "POST",
+    body: JSON.stringify({ packageId }),
+  });
+}
+
+// --- Feedback (Admin) ---
+export async function deleteSupportFeedback(id: string) {
+  return fetchAdminServer(`/api/admin/support/feedback/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// --- Agents (Admin) ---
+export async function searchAdminAgents(q: string, page = 1, limit = 20) {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  return fetchAdminServer(`/api/admin/agents/search?${params.toString()}`);
+}
+
+export async function deleteAdminAgent(id: string) {
+  return fetchAdminServer(`/api/admin/agents/${id}`, {
+    method: "DELETE",
+  });
+}

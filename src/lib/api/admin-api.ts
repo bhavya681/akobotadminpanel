@@ -343,3 +343,70 @@ export async function getActivityFeed(limit = 10) {
     `/api/admin/insights/activity?limit=${limit}`
   );
 }
+
+// --- Package Assignment ---
+export interface PackageOption {
+  _id: string;
+  name: string;
+  planType: string;
+  includedCredits: number;
+  currentPrice: number;
+  currency: string;
+  rules?: Array<Record<string, unknown>>;
+  allowedModelIds?: string[];
+  allowedToolNames?: string[];
+}
+
+export async function getPackages() {
+  return fetchApi<{ packages: PackageOption[] }>("/api/admin/packages");
+}
+
+export async function assignPackage(userId: string, packageId: string) {
+  return fetchApi<{ message?: string; credits?: number }>(
+    `/api/admin/users/${userId}/assign-package`,
+    {
+      method: "POST",
+      body: JSON.stringify({ packageId }),
+    }
+  );
+}
+
+// --- Feedback ---
+export async function deleteFeedback(id: string) {
+  return fetchApi<{ success?: boolean }>(`/api/admin/support/feedback/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// --- Agents ---
+export interface AgentItem {
+  _id: string;
+  name: string;
+  status: string;
+  ownerId?: string;
+  createdAt?: string;
+}
+
+export interface AgentsResponse {
+  agents: AgentItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export async function searchAgents(q: string, page = 1, limit = 20) {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  return fetchApi<AgentsResponse>(`/api/admin/agents/search?${params.toString()}`);
+}
+
+export async function deleteAgent(id: string) {
+  return fetchApi<{ success?: boolean }>(`/api/admin/agents/${id}`, {
+    method: "DELETE",
+  });
+}

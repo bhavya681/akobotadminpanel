@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useCallback } from "react";
+import { deleteFeedback } from "@/lib/api/admin-api";
 import type { SupportFeedbackItem } from "@/lib/types/admin";
 
 interface SupportFeedbackTableProps {
@@ -32,6 +34,19 @@ export function SupportFeedbackTable({
 }: SupportFeedbackTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = useCallback(async (id: string) => {
+    if (!confirm("Are you sure you want to delete this feedback entry?")) return;
+    setDeletingId(id);
+    const { ok } = await deleteFeedback(id);
+    if (ok) {
+      router.refresh();
+    } else {
+      alert("Failed to delete feedback");
+    }
+    setDeletingId(null);
+  }, [router]);
 
   const buildUrl = (updates: Record<string, string | undefined>, resetPage = true) => {
     const p = new URLSearchParams(searchParams.toString());
@@ -86,6 +101,9 @@ export function SupportFeedbackTable({
                   <th className="px-4 py-4 text-left font-medium text-[var(--muted-foreground)] sm:px-6">
                     Submitted
                   </th>
+                  <th className="px-4 py-4 text-right font-medium text-[var(--muted-foreground)] sm:px-6">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -134,6 +152,15 @@ export function SupportFeedbackTable({
                     </td>
                     <td className="px-4 py-4 align-top text-[var(--muted-foreground)] sm:px-6">
                       {formatDate(item.createdAt)}
+                    </td>
+                    <td className="px-4 py-4 align-top text-right sm:px-6">
+                      <button
+                        onClick={() => handleDelete(item._id)}
+                        disabled={deletingId === item._id}
+                        className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                      >
+                        {deletingId === item._id ? "..." : "Delete"}
+                      </button>
                     </td>
                   </tr>
                 ))}

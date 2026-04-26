@@ -13,6 +13,7 @@ import {
   revokeToken as revokeTokenApi,
   transferAgents as transferAgentsApi,
   getUserAgents as getUserAgentsApi,
+  assignPackageToUser as assignPackageToUserApi,
   createModel as createModelApi,
   updateModel as updateModelApi,
   deleteModel as deleteModelApi,
@@ -188,6 +189,19 @@ export async function getUserAgentsAction(userId: string) {
   return {
     ok: false,
     error: (data as { message?: string })?.message ?? "Failed to get user agents.",
+  };
+}
+
+export async function assignPackageAction(userId: string, packageId: string) {
+  const { ok, data } = await assignPackageToUserApi(userId, packageId);
+  if (ok) {
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
+    return { ok: true, data };
+  }
+  return {
+    ok: false,
+    error: (data as { message?: string })?.message ?? "Failed to assign package.",
   };
 }
 
