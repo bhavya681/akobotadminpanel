@@ -1,4 +1,5 @@
 import { getAdminModels, getAdminPackages, getToolSummaries } from "@/lib/api/admin-server-client";
+import { isAllowedLlmModel } from "@/lib/llm-whitelist";
 import { PackagesTable } from "./packages-table";
 import { CreatePackageForm } from "./create-package-form";
 
@@ -27,7 +28,9 @@ function flattenModels(
 
     for (const model of models) {
       if (model && typeof model === "object" && "modelId" in model) {
-        out.push(model as import("@/lib/api/admin-client").RegistryModel);
+        const registryModel = model as import("@/lib/api/admin-client").RegistryModel;
+        if (category === "llm" && !isAllowedLlmModel(registryModel)) continue;
+        out.push(registryModel);
       }
     }
   }

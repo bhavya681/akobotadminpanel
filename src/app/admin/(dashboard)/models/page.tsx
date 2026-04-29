@@ -1,4 +1,5 @@
 import { getAdminModels } from "@/lib/api/admin-server-client";
+import { isAllowedLlmModel } from "@/lib/llm-whitelist";
 import { ModelsTable } from "./models-table";
 import { CreateModelForm } from "./create-model-form";
 
@@ -20,7 +21,9 @@ function flattenModels(
     if (Array.isArray(arr)) {
       for (const m of arr) {
         if (m && typeof m === "object" && "modelId" in m) {
-          out.push({ model: m as import("@/lib/api/admin-client").RegistryModel, category: cat });
+          const model = m as import("@/lib/api/admin-client").RegistryModel;
+          if (cat === "llm" && !isAllowedLlmModel(model)) continue;
+          out.push({ model, category: cat });
         }
       }
     }
