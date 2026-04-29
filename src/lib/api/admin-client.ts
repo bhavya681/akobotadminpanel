@@ -50,18 +50,30 @@ export interface User {
   email: string;
   isActive?: boolean;
   isBanned?: boolean;
+  isSystem?: boolean;
   isAdmin?: boolean;
-  role?: string;
+  adminActive?: boolean;
+  credits?: number;
+  hasPurchasedCredits?: boolean;
+  isVerified?: boolean;
+  lastLogin?: string;
   createdAt?: string;
   [key: string]: unknown;
 }
 
 export interface PaginatedUsers {
   users: User[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages?: number;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    limit: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    nextPage: number | null;
+    prevPage: number | null;
+  };
+  filters: Record<string, any>;
 }
 
 export interface UsersQuery {
@@ -71,6 +83,15 @@ export interface UsersQuery {
   email?: string;
   isActive?: boolean;
   isBanned?: boolean;
+  role?: 'admin' | 'user';
+  hasPurchasedCredits?: boolean;
+  creditsMin?: number;
+  creditsMax?: number;
+  planType?: string;
+  createdAfter?: string;
+  createdBefore?: string;
+  sortBy?: 'createdAt' | 'lastLogin' | 'credits' | 'username';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface SupportFeedbackItem {
@@ -148,6 +169,15 @@ export async function getUsers(query: UsersQuery = {}) {
   if (query.email) params.set("email", query.email);
   if (query.isActive !== undefined) params.set("isActive", String(query.isActive));
   if (query.isBanned !== undefined) params.set("isBanned", String(query.isBanned));
+  if (query.role) params.set("role", query.role);
+  if (query.hasPurchasedCredits !== undefined) params.set("hasPurchasedCredits", String(query.hasPurchasedCredits));
+  if (query.creditsMin !== undefined) params.set("creditsMin", String(query.creditsMin));
+  if (query.creditsMax !== undefined) params.set("creditsMax", String(query.creditsMax));
+  if (query.planType) params.set("planType", query.planType);
+  if (query.createdAfter) params.set("createdAfter", query.createdAfter);
+  if (query.createdBefore) params.set("createdBefore", query.createdBefore);
+  if (query.sortBy) params.set("sortBy", query.sortBy);
+  if (query.sortOrder) params.set("sortOrder", query.sortOrder);
   const qs = params.toString();
   return fetchAdmin<PaginatedUsers>(`/api/admin/users${qs ? `?${qs}` : ""}`);
 }

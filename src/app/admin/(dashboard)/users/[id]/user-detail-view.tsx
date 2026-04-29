@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { AssignPackageModal } from "./assign-package-modal";
-import { getUserAgents, deleteAgent } from "@/lib/api/admin-api";
-import type { AgentItem } from "@/lib/api/admin-api";
+import { getUserAgents, deleteAgent, getUserUpdateLogs } from "@/lib/api/admin-api";
+import type { AgentItem, UserUpdateLog } from "@/lib/api/admin-api";
 
 interface UserDetailViewProps {
   data: {
@@ -56,11 +56,15 @@ interface UserDetailViewProps {
 
 export function UserDetailView({ data }: UserDetailViewProps) {
   const { user, wallet, entitlement, quotaUsage } = data;
-  const [activeTab, setActiveTab] = useState<"overview" | "wallet" | "quota" | "agents">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "wallet" | "quota" | "agents" | "logs">("overview");
   const [showAssignPackage, setShowAssignPackage] = useState(false);
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(false);
   const [deletingAgentId, setDeletingAgentId] = useState<string | null>(null);
+  const [updateLogs, setUpdateLogs] = useState<UserUpdateLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsTotal, setLogsTotal] = useState(0);
 
   const userId = user._id || user.id || "";
 
@@ -74,11 +78,25 @@ export function UserDetailView({ data }: UserDetailViewProps) {
     setAgentsLoading(false);
   }, [userId]);
 
+  const fetchLogs = useCallback(async (page = 1) => {
+    if (!userId) return;
+    setLogsLoading(true);
+    const { ok, data } = await getUserUpdateLogs(userId, { page, limit: 20 });
+    if (ok && data) {
+      setUpdateLogs((data as any).logs || []);
+      setLogsTotal((data as any).pagination?.total || 0);
+    }
+    setLogsLoading(false);
+  }, [userId]);
+
   useEffect(() => {
     if (activeTab === "agents") {
       fetchAgents();
     }
-  }, [activeTab, fetchAgents]);
+    if (activeTab === "logs") {
+      fetchLogs(logsPage);
+    }
+  }, [activeTab, fetchAgents, fetchLogs, logsPage]);
 
   const handleDeleteAgent = useCallback(async (agentId: string) => {
     if (!confirm("Are you sure you want to delete this agent? This will also remove its knowledge base and integrations.")) return;
@@ -145,7 +163,7 @@ export function UserDetailView({ data }: UserDetailViewProps) {
       {/* Tabs */}
       <div className="mb-6 border-b border-[var(--border)]">
         <nav className="flex gap-6">
-          {(["overview", "wallet", "quota", "agents"] as const).map((tab) => (
+          {(["overview", "wallet", "quota", "agents", "logs"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -468,6 +486,99 @@ export function UserDetailView({ data }: UserDetailViewProps) {
           </section>
         </div>
       )}
+      {activeTab === "logs" && (
+        <div className="space-y-6">
+          <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-[var(--foreground)]">Update History</h2>
+              <span className="text-xs text-[var(--muted-foreground)]">{logsTotal} log(s)</span>
+            </div>
+
+            {logsLoading ? (
+              <div className="py-8 text-center text-sm text-[var(--muted-foreground)]">Loading logs...</div>
+            ) : updateLogs.length === 0 ? (
+              <div className="py-8 text-center text-sm text-[var(--muted-foreground)]">No update logs found for this user</div>
+            ) : (
+              <div className="space-y-3">
+                {updateLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          log.action === "PASSWORD_CHANGED"
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            : log.action === "OAUTH_LINKED"
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                            : log.action === "BANNED"
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                            : log.action === "USER_CREATED"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                        }`}
+                      >
+                        {log.action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase())}
+                      </span>
+                      <span className="text-xs text-[var(--muted-foreground)]">
+                        {formatDate(log.createdAt)}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {log.changedFields.map((field) => (
+                        <span
+                          key={field}
+                          className="inline-flex items-center rounded-md bg-[var(--muted)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]"
+                        >
+                          {field}
+                          {log.newValues?.[field] !== undefined && (
+                            <span className="ml-1">
+                              →{" "}
+                              {typeof log.newValues[field] === "boolean"
+                                ? String(log.newValues[field])
+                                : typeof log.newValues[field] === "object"
+                                ? JSON.stringify(log.newValues[field]).slice(0, 30)
+                                : String(log.newValues[field]).slice(0, 30)}
+                            </span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                      Source: {log.source} · By: {log.performedBy}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Pagination */}
+                {logsTotal > 20 && (
+                  <div className="flex items-center justify-center gap-3 pt-4">
+                    <button
+                      onClick={() => setLogsPage((p) => Math.max(1, p - 1))}
+                      disabled={logsPage <= 1}
+                      className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm text-[var(--foreground)] disabled:opacity-40 hover:bg-[var(--muted)] transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-sm text-[var(--muted-foreground)]">
+                      Page {logsPage} of {Math.ceil(logsTotal / 20)}
+                    </span>
+                    <button
+                      onClick={() => setLogsPage((p) => p + 1)}
+                      disabled={logsPage >= Math.ceil(logsTotal / 20)}
+                      className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm text-[var(--foreground)] disabled:opacity-40 hover:bg-[var(--muted)] transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
       {showAssignPackage && (
         <AssignPackageModal
           userId={user._id || user.id || ""}

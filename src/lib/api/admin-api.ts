@@ -378,6 +378,67 @@ export async function deleteFeedback(id: string) {
   });
 }
 
+export interface UserUpdateLog {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  action: string;
+  changedFields: string[];
+  oldValues?: Record<string, any>;
+  newValues?: Record<string, any>;
+  performedBy: string;
+  source: string;
+  createdAt: string;
+}
+
+export interface UserUpdateLogsResponse {
+  logs: UserUpdateLog[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface UserUpdateLogsQuery {
+  page?: number;
+  limit?: number;
+  action?: string;
+  userId?: string;
+  email?: string;
+}
+
+// --- User Update Logs ---
+export async function getUserUpdateLogs(userId: string, query: { page?: number; limit?: number; action?: string } = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+  if (query.action) params.set("action", query.action);
+  const qs = params.toString();
+  return fetchApi<UserUpdateLogsResponse>(`/api/admin/users/${userId}/update-logs${qs ? `?${qs}` : ""}`);
+}
+
+export async function getAllUserUpdateLogs(query: UserUpdateLogsQuery = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+  if (query.action) params.set("action", query.action);
+  if (query.userId) params.set("userId", query.userId);
+  if (query.email) params.set("email", query.email);
+  const qs = params.toString();
+  return fetchApi<UserUpdateLogsResponse>(`/api/admin/update-logs${qs ? `?${qs}` : ""}`);
+}
+
+export async function cleanupUserUpdateLogs(keepDays?: number) {
+  const params = new URLSearchParams();
+  if (keepDays !== undefined) params.set("keepDays", String(keepDays));
+  const qs = params.toString();
+  return fetchApi<{ deleted?: number; message?: string }>(`/api/admin/update-logs${qs ? `?${qs}` : ""}`, {
+    method: "DELETE",
+  });
+}
+
 // --- Agents ---
 export interface AgentItem {
   _id: string;

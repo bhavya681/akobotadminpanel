@@ -8,6 +8,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { UsersQuery } from "./admin-client";
 
 const API_BASE =
   (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "https://api.Akobot.ai").replace(
@@ -43,7 +44,6 @@ export async function fetchAdminServer<T>(
 export type {
   User,
   PaginatedUsers,
-  UsersQuery,
   SupportFeedbackItem,
   SupportFeedbackPagination,
   SupportFeedbackResponse,
@@ -79,7 +79,7 @@ export async function searchUserByEmail(email: string) {
   );
 }
 
-export async function getUsers(query: any = {}) {
+export async function getUsers(query: UsersQuery = {}) {
   const params = new URLSearchParams();
   if (query.page) params.set("page", String(query.page));
   if (query.limit) params.set("limit", String(query.limit));
@@ -87,6 +87,15 @@ export async function getUsers(query: any = {}) {
   if (query.email) params.set("email", query.email);
   if (query.isActive !== undefined) params.set("isActive", String(query.isActive));
   if (query.isBanned !== undefined) params.set("isBanned", String(query.isBanned));
+  if (query.role) params.set("role", query.role);
+  if (query.hasPurchasedCredits !== undefined) params.set("hasPurchasedCredits", String(query.hasPurchasedCredits));
+  if (query.creditsMin !== undefined) params.set("creditsMin", String(query.creditsMin));
+  if (query.creditsMax !== undefined) params.set("creditsMax", String(query.creditsMax));
+  if (query.planType) params.set("planType", query.planType);
+  if (query.createdAfter) params.set("createdAfter", query.createdAfter);
+  if (query.createdBefore) params.set("createdBefore", query.createdBefore);
+  if (query.sortBy) params.set("sortBy", query.sortBy);
+  if (query.sortOrder) params.set("sortOrder", query.sortOrder);
   const qs = params.toString();
   return fetchAdminServer(`/api/admin/users${qs ? `?${qs}` : ""}`);
 }
@@ -187,6 +196,17 @@ export async function revokeToken(tokenId: string) {
 // --- Insights ---
 export async function getFullInsights() {
   return fetchAdminServer("/api/admin/insights");
+}
+
+export async function getAllUserUpdateLogs(query: any = {}) {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", String(query.page));
+  if (query.limit) params.set("limit", String(query.limit));
+  if (query.action) params.set("action", query.action);
+  if (query.userId) params.set("userId", query.userId);
+  if (query.email) params.set("email", query.email);
+  const qs = params.toString();
+  return fetchAdminServer(`/api/admin/update-logs${qs ? `?${qs}` : ""}`);
 }
 
 // --- Model Registry ---

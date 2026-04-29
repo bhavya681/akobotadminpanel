@@ -17,6 +17,15 @@ interface UsersTableProps {
     username?: string;
     isActive?: string;
     isBanned?: string;
+    role?: string;
+    hasPurchasedCredits?: string;
+    creditsMin?: string;
+    creditsMax?: string;
+    planType?: string;
+    createdAfter?: string;
+    createdBefore?: string;
+    sortBy?: string;
+    sortOrder?: string;
     limit?: string;
   };
 }

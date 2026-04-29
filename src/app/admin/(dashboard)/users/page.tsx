@@ -7,6 +7,18 @@ const LIMIT_OPTIONS = [10, 25, 50, 100] as const;
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
+function parseBooleanParam(value: string | undefined): boolean | undefined {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return undefined;
+}
+
+function parseNumberParam(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const num = Number(value);
+  return isNaN(num) ? undefined : num;
+}
+
 export default async function UsersPage({
   searchParams,
 }: {
@@ -18,17 +30,26 @@ export default async function UsersPage({
   const limit = LIMIT_OPTIONS.includes(limitParam as (typeof LIMIT_OPTIONS)[number])
     ? limitParam
     : 10;
+
+  // Build filters from search params
   const email = String(params?.email ?? "").trim();
   const username = String(params?.username ?? "").trim();
-  const isActive = params?.isActive as string | undefined;
-  const isBanned = params?.isBanned as string | undefined;
+  const isActive = parseBooleanParam(params?.isActive as string | undefined);
+  const isBanned = parseBooleanParam(params?.isBanned as string | undefined);
+  const role = params?.role as "admin" | "user" | undefined;
+  const hasPurchasedCredits = parseBooleanParam(params?.hasPurchasedCredits as string | undefined);
+  const creditsMin = parseNumberParam(params?.creditsMin as string | undefined);
+  const creditsMax = parseNumberParam(params?.creditsMax as string | undefined);
+  const planType = String(params?.planType ?? "").trim() || undefined;
+  const createdAfter = String(params?.createdAfter ?? "").trim() || undefined;
+  const createdBefore = String(params?.createdBefore ?? "").trim() || undefined;
+  const sortBy = params?.sortBy as "createdAt" | "lastLogin" | "credits" | "username" | undefined;
+  const sortOrder = params?.sortOrder as "asc" | "desc" | undefined;
 
   let usersData: {
     users: import("@/lib/api/admin-client").User[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
+    pagination: import("@/lib/api/admin-client").PaginatedUsers["pagination"];
+    filters: Record<string, any>;
   };
 
   if (email) {
@@ -36,18 +57,32 @@ export default async function UsersPage({
     if (res.ok && res.data && typeof res.data === "object" && !("message" in res.data)) {
       usersData = {
         users: [res.data as import("@/lib/api/admin-client").User],
-        total: 1,
-        page: 1,
-        limit: 1,
-        totalPages: 1,
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalCount: 1,
+          limit: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+          nextPage: null,
+          prevPage: null,
+        },
+        filters: { email },
       };
     } else {
       usersData = {
         users: [],
-        total: 0,
-        page: 1,
-        limit: 10,
-        totalPages: 0,
+        pagination: {
+          currentPage: 1,
+          totalPages: 0,
+          totalCount: 0,
+          limit: 10,
+          hasNextPage: false,
+          hasPrevPage: false,
+          nextPage: null,
+          prevPage: null,
+        },
+        filters: { email },
       };
     }
   } else {
@@ -56,15 +91,34 @@ export default async function UsersPage({
       limit,
       username: username || undefined,
       email: email || undefined,
-      isActive: isActive === "true" ? true : isActive === "false" ? false : undefined,
-      isBanned: isBanned === "true" ? true : isBanned === "false" ? false : undefined,
+      isActive,
+      isBanned,
+      role,
+      hasPurchasedCredits,
+      creditsMin,
+      creditsMax,
+      planType,
+      createdAfter,
+      createdBefore,
+      sortBy,
+      sortOrder,
     });
     const data = (res.ok && typeof res.data === "object" && res.data
       ? res.data
-      : { users: [], total: 0, page: 1, limit, totalPages: 0 }) as any;
+      : { users: [], pagination: { currentPage: 1, totalPages: 0, totalCount: 0, limit: 10, hasNextPage: false, hasPrevPage: false, nextPage: null, prevPage: null }, filters: {} }) as any;
     usersData = {
-      ...data,
-      totalPages: data.totalPages ?? Math.max(1, Math.ceil(data.total / data.limit)),
+      users: data.users || [],
+      pagination: data.pagination || {
+        currentPage: 1,
+        totalPages: 0,
+        totalCount: 0,
+        limit: 10,
+        hasNextPage: false,
+        hasPrevPage: false,
+        nextPage: null,
+        prevPage: null,
+      },
+      filters: data.filters || {},
     };
   }
 
@@ -91,15 +145,24 @@ export default async function UsersPage({
       >
         <UsersTable
           users={usersData.users}
-          total={usersData.total}
-          page={usersData.page}
-          limit={usersData.limit}
-          totalPages={usersData.totalPages}
+          total={usersData.pagination.totalCount}
+          page={usersData.pagination.currentPage}
+          limit={usersData.pagination.limit}
+          totalPages={usersData.pagination.totalPages}
           filters={{
             email: params?.email ? String(params.email) : undefined,
             username: params?.username ? String(params.username) : undefined,
             isActive: params?.isActive ? String(params.isActive) : undefined,
             isBanned: params?.isBanned ? String(params.isBanned) : undefined,
+            role: params?.role ? String(params.role) : undefined,
+            hasPurchasedCredits: params?.hasPurchasedCredits ? String(params.hasPurchasedCredits) : undefined,
+            creditsMin: params?.creditsMin ? String(params.creditsMin) : undefined,
+            creditsMax: params?.creditsMax ? String(params.creditsMax) : undefined,
+            planType: params?.planType ? String(params.planType) : undefined,
+            createdAfter: params?.createdAfter ? String(params.createdAfter) : undefined,
+            createdBefore: params?.createdBefore ? String(params.createdBefore) : undefined,
+            sortBy: params?.sortBy ? String(params.sortBy) : undefined,
+            sortOrder: params?.sortOrder ? String(params.sortOrder) : undefined,
             limit: params?.limit ? String(params.limit) : "10",
           }}
         />
