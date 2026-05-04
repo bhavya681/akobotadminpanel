@@ -353,6 +353,7 @@ export function PackagesTable({
         if (!pkg) return null;
         return (
           <EditPackageForm
+            key={pkg._id}
             pkg={pkg}
             models={models}
             toolSummaries={toolSummaries}
