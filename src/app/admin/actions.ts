@@ -500,9 +500,18 @@ export async function updatePackageAction(id: string, formData: FormData) {
     body.sortOrder = sortOrder ? parseInt(sortOrder, 10) : undefined;
 
   try {
-    body.rules = parsePackageRules(formData.get("rulesJson"));
-    body.allowedModelIds = parseAllowedModelIds(formData.get("allowedModelIdsJson"));
-    body.allowedToolNames = parseAllowedToolNames(formData.get("allowedToolNamesJson"));
+    const rulesJson = formData.get("rulesJson");
+    if (rulesJson !== null) {
+      body.rules = parsePackageRules(rulesJson);
+    }
+    const allowedModelIdsJson = formData.get("allowedModelIdsJson");
+    if (allowedModelIdsJson !== null) {
+      body.allowedModelIds = parseAllowedModelIds(allowedModelIdsJson);
+    }
+    const allowedToolNamesJson = formData.get("allowedToolNamesJson");
+    if (allowedToolNamesJson !== null) {
+      body.allowedToolNames = parseAllowedToolNames(allowedToolNamesJson);
+    }
   } catch (error) {
     return {
       ok: false,
