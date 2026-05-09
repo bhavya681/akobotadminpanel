@@ -98,12 +98,12 @@ export function TokensTable({ tokens }: { tokens: Token[] }) {
                     </td>
                     <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
                       {token.createdAt
-                        ? new Date(token.createdAt).toLocaleString()
+                        ? new Date(token.createdAt).toLocaleString("en-US")
                         : "—"}
                     </td>
                     <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
                       {token.expiresAt
-                        ? new Date(token.expiresAt).toLocaleString()
+                        ? new Date(token.expiresAt).toLocaleString("en-US")
                         : "—"}
                     </td>
                     <td className="px-6 py-4">

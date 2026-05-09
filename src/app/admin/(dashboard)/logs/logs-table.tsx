@@ -58,7 +58,7 @@ export function LogsTable({ logs, pagination, limitOptions }: LogsTableProps) {
 
   const formatDate = (d?: string) => {
     if (!d) return "N/A";
-    return new Date(d).toLocaleString();
+    return new Date(d).toLocaleString("en-US");
   };
 
   const formatAction = (action: string) => {

@@ -45,7 +45,7 @@ export function AssignPackageModal({ userId, userName, onClose, onAssigned }: As
 
     const { ok, data } = await assignPackage(userId, selectedPackageId);
     if (ok) {
-      setSuccess(`Package assigned successfully! ${data?.credits ? `${data.credits.toLocaleString()} credits added.` : ""}`);
+      setSuccess(`Package assigned successfully! ${data?.credits ? `${data.credits.toLocaleString("en-US")} credits added.` : ""}`);
       setTimeout(() => {
         onAssigned();
         onClose();
@@ -113,7 +113,7 @@ export function AssignPackageModal({ userId, userName, onClose, onAssigned }: As
                       <>
                         <span className="text-xs text-[var(--muted-foreground)]">·</span>
                         <span className="text-xs text-[var(--muted-foreground)]">
-                          {pkg.includedCredits.toLocaleString()} credits
+                          {pkg.includedCredits.toLocaleString("en-US")} credits
                         </span>
                       </>
                     )}

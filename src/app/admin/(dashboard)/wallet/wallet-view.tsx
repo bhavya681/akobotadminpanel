@@ -175,7 +175,7 @@ export function WalletView({
             Balance
           </p>
           <p className="text-2xl font-bold text-[var(--foreground)]">
-            {balance !== null ? balance.toLocaleString() : "—"} credits
+            {balance !== null ? balance.toLocaleString("en-US") : "—"} credits
           </p>
         </div>
       </div>
@@ -304,7 +304,7 @@ export function WalletView({
                       >
                         <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
                           {tx.createdAt
-                            ? new Date(tx.createdAt).toLocaleString()
+                            ? new Date(tx.createdAt).toLocaleString("en-US")
                             : "—"}
                         </td>
                         <td className="px-4 py-4 sm:px-6">
@@ -320,11 +320,11 @@ export function WalletView({
                           }`}
                         >
                           {isCredit ? "+" : ""}
-                          {amt.toLocaleString()}
+                          {amt.toLocaleString("en-US")}
                         </td>
                         <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
                           {tx.balanceAfter != null
-                            ? tx.balanceAfter.toLocaleString()
+                            ? tx.balanceAfter.toLocaleString("en-US")
                             : "—"}
                         </td>
                         <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6 max-w-[200px] truncate">

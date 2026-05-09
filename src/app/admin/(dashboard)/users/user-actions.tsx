@@ -631,7 +631,7 @@ export function UserActions({ user }: { user: User }) {
                         {pkg.includedCredits > 0 && (
                           <>
                             <span className="text-xs text-[var(--muted-foreground)]">·</span>
-                            <span className="text-xs text-[var(--muted-foreground)]">{pkg.includedCredits.toLocaleString()} credits</span>
+                            <span className="text-xs text-[var(--muted-foreground)]">{pkg.includedCredits.toLocaleString("en-US")} credits</span>
                           </>
                         )}
                       </div>

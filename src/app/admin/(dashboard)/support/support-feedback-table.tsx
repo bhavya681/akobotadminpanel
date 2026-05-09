@@ -21,7 +21,7 @@ function formatDate(dateValue?: string): string {
   if (!dateValue) return "-";
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString();
+  return date.toLocaleString("en-US");
 }
 
 export function SupportFeedbackTable({

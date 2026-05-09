@@ -387,7 +387,7 @@ function StatCard({
   const formatted =
     format === "currency"
       ? `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : value.toLocaleString();
+      : value.toLocaleString("en-US");
 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm transition-colors duration-300">
@@ -433,7 +433,7 @@ function getActivityIcon(type?: string): string {
 function formatDate(d?: string): string {
   if (!d) return "";
   try {
-    return new Date(d).toLocaleString();
+    return new Date(d).toLocaleString("en-US");
   } catch {
     return d;
   }

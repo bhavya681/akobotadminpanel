@@ -112,7 +112,7 @@ export function UserDetailView({ data }: UserDetailViewProps) {
 
   const formatDate = (d?: string) => {
     if (!d) return "N/A";
-    return new Date(d).toLocaleString();
+    return new Date(d).toLocaleString("en-US");
   };
 
   const formatCurrency = (n?: number) => {

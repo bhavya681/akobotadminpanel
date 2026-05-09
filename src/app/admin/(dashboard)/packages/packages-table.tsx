@@ -217,7 +217,7 @@ export function PackagesTable({
                       </div>
                     </td>
                     <td className="px-4 py-4 text-[var(--muted-foreground)] sm:px-6">
-                      {pkg.includedCredits?.toLocaleString() ?? "—"}
+                      {pkg.includedCredits?.toLocaleString("en-US") ?? "—"}
                     </td>
                     <td className="px-4 py-4 sm:px-6">
                       <div className="flex flex-col gap-1.5">
