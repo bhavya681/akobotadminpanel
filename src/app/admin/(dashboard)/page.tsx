@@ -34,6 +34,9 @@ type Summary = {
   ordersCount?: number;
   growth?: Record<string, number>;
 };
+type TokenUsageByProvider = { provider?: string; inputTokens?: number; outputTokens?: number; totalTokens?: number };
+type TokenUsageByModel = { modelId?: string; inputTokens?: number; outputTokens?: number; totalTokens?: number };
+type TopTokenUser = { userId?: string; email?: string; totalTokens?: number };
 
 const COLORS = ["#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#3b82f6", "#ec4899"];
 
@@ -44,6 +47,11 @@ export default function AdminDashboardPage() {
     gatewayBreakdown?: GatewayItem[];
     topPackages?: PackageItem[];
     activity?: ActivityItem[];
+    tokenUsage?: {
+      byProvider?: TokenUsageByProvider[];
+      byModel?: TokenUsageByModel[];
+      topUsers?: TopTokenUser[];
+    };
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +98,9 @@ export default function AdminDashboardPage() {
   const gateways = Array.isArray(data?.gatewayBreakdown) ? data.gatewayBreakdown : [];
   const topPackages = Array.isArray(data?.topPackages) ? data.topPackages : [];
   const activity = Array.isArray(data?.activity) ? data.activity : [];
+  const tokenUsageByProvider = Array.isArray(data?.tokenUsage?.byProvider) ? data.tokenUsage.byProvider : [];
+  const tokenUsageByModel = Array.isArray(data?.tokenUsage?.byModel) ? data.tokenUsage.byModel : [];
+  const topTokenUsers = Array.isArray(data?.tokenUsage?.topUsers) ? data.tokenUsage.topUsers : [];
 
   const growth = summary?.growth ?? {};
 
@@ -328,6 +339,101 @@ export default function AdminDashboardPage() {
           )}
         </section>
       </div>
+
+      {/* Token Usage Analytics */}
+      {(tokenUsageByProvider.length > 0 || tokenUsageByModel.length > 0) && (
+        <section className="mt-8">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] mb-4">
+            Token Usage Analytics
+          </h2>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* By Provider */}
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+              <h3 className="text-sm font-semibold text-[var(--foreground)] mb-4">Usage by Provider</h3>
+              {tokenUsageByProvider.length > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={tokenUsageByProvider} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                      <XAxis type="number" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
+                      <YAxis type="category" dataKey="provider" width={80} tick={{ fill: "var(--foreground)", fontSize: 12 }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "8px",
+                          color: "var(--foreground)",
+                        }}
+                        formatter={(value: any) => [Number(value).toLocaleString("en-IN"), "Tokens"]}
+                      />
+                      <Bar dataKey="totalTokens" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--muted-foreground)]">No provider data</p>
+              )}
+            </div>
+
+            {/* By Model */}
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+              <h3 className="text-sm font-semibold text-[var(--foreground)] mb-4">Usage by Model (Top 10)</h3>
+              {tokenUsageByModel.length > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={tokenUsageByModel.slice(0, 10)} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                      <XAxis type="number" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
+                      <YAxis type="category" dataKey="modelId" width={120} tick={{ fill: "var(--foreground)", fontSize: 10 }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "8px",
+                          color: "var(--foreground)",
+                        }}
+                        formatter={(value: any) => [Number(value).toLocaleString("en-IN"), "Tokens"]}
+                      />
+                      <Bar dataKey="totalTokens" fill="#10b981" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--muted-foreground)]">No model data</p>
+              )}
+            </div>
+          </div>
+
+          {/* Top Token Users */}
+          {topTokenUsers.length > 0 && (
+            <div className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+              <h3 className="text-sm font-semibold text-[var(--foreground)] mb-4">Top Token Users</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--border)]">
+                      <th className="text-left py-2 px-3 text-[var(--muted-foreground)]">User</th>
+                      <th className="text-right py-2 px-3 text-[var(--muted-foreground)]">Total Tokens</th>
+                      <th className="text-right py-2 px-3 text-[var(--muted-foreground)]">Input</th>
+                      <th className="text-right py-2 px-3 text-[var(--muted-foreground)]">Output</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topTokenUsers.map((user, i) => (
+                      <tr key={i} className="border-b border-[var(--border)] last:border-0">
+                        <td className="py-2 px-3 text-[var(--foreground)]">{user.email ?? user.userId}</td>
+                        <td className="py-2 px-3 text-right text-[var(--foreground)]">{(user.totalTokens ?? 0).toLocaleString("en-IN")}</td>
+                        <td className="py-2 px-3 text-right text-[var(--muted-foreground)]">{(user as any).inputTokens?.toLocaleString("en-IN") ?? "-"}</td>
+                        <td className="py-2 px-3 text-right text-[var(--muted-foreground)]">{(user as any).outputTokens?.toLocaleString("en-IN") ?? "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
