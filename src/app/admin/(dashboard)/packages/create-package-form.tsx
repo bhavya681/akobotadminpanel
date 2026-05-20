@@ -56,8 +56,13 @@ export function CreatePackageForm({
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [selectedToolNames, setSelectedToolNames] = useState<string[]>([]);
   const [allTools, setAllTools] = useState(true);
-  const [planType, setPlanType] = useState<"credits" | "quota">("credits");
+  const [planType, setPlanType] = useState<"credits" | "quota" | "token">("credits");
   const [isFreeDefault, setIsFreeDefault] = useState(false);
+  
+  // Token pricing fields
+  const [costPerMillionInputTokens, setCostPerMillionInputTokens] = useState(0);
+  const [costPerMillionOutputTokens, setCostPerMillionOutputTokens] = useState(0);
+  const [allowedProviders, setAllowedProviders] = useState<string[]>([]);
 
   const PLUGIN_CATEGORIES = new Set(["messaging"]);
   const tools = toolSummaries.filter((t) => !PLUGIN_CATEGORIES.has(t.category ?? "general"));
@@ -161,6 +166,13 @@ export function CreatePackageForm({
               />
               <input type="hidden" name="planType" value={planType} />
               <input type="hidden" name="isFreeDefault" value={String(isFreeDefault)} />
+              {planType === "token" && (
+                <>
+                  <input type="hidden" name="costPerMillionInputTokens" value={costPerMillionInputTokens} />
+                  <input type="hidden" name="costPerMillionOutputTokens" value={costPerMillionOutputTokens} />
+                  <input type="hidden" name="allowedProviders" value={JSON.stringify(allowedProviders)} />
+                </>
+              )}
 
               {/* Plan type selector */}
               <div className="rounded-xl border border-[var(--border)] bg-[var(--background)]/40 p-4">
@@ -180,6 +192,13 @@ export function CreatePackageForm({
                       <span className="block text-xs text-[var(--muted-foreground)]">Hard-cap limits per resource</span>
                     </div>
                   </label>
+                  <label className={`flex-1 flex items-center gap-2 rounded-lg border p-3 cursor-pointer ${planType === "token" ? "border-[var(--primary)] bg-[var(--primary)]/10" : "border-[var(--border)]"}`}>
+                    <input type="radio" checked={planType === "token"} onChange={() => setPlanType("token")} className="accent-[var(--primary)]" />
+                    <div>
+                      <span className="block text-sm font-medium text-[var(--foreground)]">Token</span>
+                      <span className="block text-xs text-[var(--muted-foreground)]">Pay per token usage</span>
+                    </div>
+                  </label>
                 </div>
                 <label className="flex items-center gap-2 mt-3 cursor-pointer">
                   <input
@@ -191,6 +210,70 @@ export function CreatePackageForm({
                   <span className="text-sm text-[var(--foreground)]">Default free plan (assigned on signup)</span>
                 </label>
               </div>
+              
+              {/* Token pricing configuration */}
+              {planType === "token" && (
+                <div className="rounded-xl border border-[var(--primary)] bg-[var(--primary)]/5 p-4 space-y-4">
+                  <h4 className="text-sm font-semibold text-[var(--foreground)]">Token Pricing Configuration</h4>
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    Set the cost per million tokens for this token-based package.
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+                        Cost per 1M Input Tokens (credits)
+                      </label>
+                      <input
+                        type="number"
+                        name="costPerMillionInputTokens"
+                        value={costPerMillionInputTokens}
+                        onChange={(e) => setCostPerMillionInputTokens(Number(e.target.value))}
+                        min="0"
+                        className={inputClass}
+                        placeholder="e.g., 100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+                        Cost per 1M Output Tokens (credits)
+                      </label>
+                      <input
+                        type="number"
+                        name="costPerMillionOutputTokens"
+                        value={costPerMillionOutputTokens}
+                        onChange={(e) => setCostPerMillionOutputTokens(Number(e.target.value))}
+                        min="0"
+                        className={inputClass}
+                        placeholder="e.g., 300"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+                      Allowed Providers
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {["ollama", "modelslab", "openrouter"].map((provider) => (
+                        <label key={provider} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={allowedProviders.includes(provider)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setAllowedProviders([...allowedProviders, provider]);
+                              } else {
+                                setAllowedProviders(allowedProviders.filter((p) => p !== provider));
+                              }
+                            }}
+                            className="rounded border-[var(--border)]"
+                          />
+                          <span className="text-sm text-[var(--foreground)]">{provider}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
                   Name *
