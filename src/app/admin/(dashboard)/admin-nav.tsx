@@ -107,6 +107,7 @@ const navItems = [
   { href: "/admin/wallet", label: "Wallet", icon: WalletIcon },
   { href: "/admin/packages", label: "Packages", icon: PackageIcon },
   { href: "/admin/models", label: "Models", icon: CpuIcon },
+  { href: "/admin/ai-settings", label: "AI Settings", icon: SettingsIcon },
   { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
   { href: "/admin/support", label: "Support", icon: MessageSquareIcon },
   { href: "/admin/configs", label: "Configuration", icon: SettingsIcon },

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AI_SETTINGS_CONFIG_META } from "@/lib/ai-settings";
 import {
   createUser as createUserApi,
   updateUser as updateUserApi,
@@ -674,6 +675,71 @@ export async function lookupConfigByKeyAction(key: string) {
     ok: true as const,
     preview: JSON.stringify(data, null, 2),
   };
+}
+
+async function upsertAiSetting(
+  meta: (typeof AI_SETTINGS_CONFIG_META)[keyof typeof AI_SETTINGS_CONFIG_META],
+  value: unknown
+) {
+  const payload: CreateConfigInput = {
+    key: meta.key,
+    category: meta.category,
+    description: meta.description,
+    valueType: meta.valueType,
+    value,
+    isSecret: false,
+    isActive: true,
+  };
+
+  const current = await getConfigByKeyApi(meta.key);
+  const exists =
+    current.ok &&
+    current.data &&
+    typeof current.data === "object" &&
+    "key" in current.data;
+
+  return exists
+    ? updateConfigApi(meta.key, payload)
+    : createConfigApi(payload);
+}
+
+export async function saveAiSettingsAction(formData: FormData) {
+  const prompt = formData.get("systemPrompt")?.toString().trim();
+  if (!prompt) {
+    return { ok: false, error: "System prompt is required." };
+  }
+
+  const rawChatEndpointsEnabled = formData
+    .getAll("rawChatEndpointsEnabled")
+    .some((value) => value.toString() === "true");
+  const customAgentCreationRequiresPaid = formData
+    .getAll("customAgentCreationRequiresPaid")
+    .some((value) => value.toString() === "true");
+
+  const updates = await Promise.all([
+    upsertAiSetting(AI_SETTINGS_CONFIG_META.prompt, prompt),
+    upsertAiSetting(
+      AI_SETTINGS_CONFIG_META.rawChatEndpointsEnabled,
+      rawChatEndpointsEnabled
+    ),
+    upsertAiSetting(
+      AI_SETTINGS_CONFIG_META.customAgentCreationRequiresPaid,
+      customAgentCreationRequiresPaid
+    ),
+  ]);
+
+  const failed = updates.find((result) => !result.ok);
+  if (failed) {
+    const data = failed.data as { message?: string; error?: string };
+    return {
+      ok: false,
+      error: data?.message ?? data?.error ?? "Failed to save AI settings.",
+    };
+  }
+
+  revalidatePath("/admin/ai-settings");
+  revalidatePath("/admin/configs");
+  return { ok: true };
 }
 
 export async function walletActionAction(formData: FormData) {
